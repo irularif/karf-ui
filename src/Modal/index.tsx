@@ -1,7 +1,6 @@
 import { Portal } from '@gorhom/portal';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions } from 'react-native';
-import { Animated, StyleSheet, TouchableOpacity, ViewProps } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, StyleSheet, TouchableOpacity, ViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withTheme';
@@ -69,74 +68,6 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
       }
     }, [isOpen]);
 
-    const contentContainerStyle = useMemo(() => {
-      let style: any = {
-        opacity: fadeAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 1],
-        }),
-        transform: [
-          {
-            translateY: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [100, 0],
-            }),
-          },
-        ],
-      };
-      switch (position) {
-        case 'top':
-          style = {
-            paddingTop:
-              (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop']) ||
-                0) + inset.top,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-100, 0],
-                }),
-              },
-            ],
-          };
-          break;
-        case 'bottom':
-          style = {
-            paddingBottom:
-              (getStyleValue(contentContainerProps, [
-                'padding',
-                'paddingVertical',
-                'paddingBottom',
-              ]) || 0) + inset.bottom,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [100, 0],
-                }),
-              },
-            ],
-          };
-          break;
-        case 'full':
-          style = {
-            height: '100%',
-            paddingTop:
-              (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop']) ||
-                0) + inset.top,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [height / 2, 0],
-                }),
-              },
-            ],
-          };
-          break;
-      }
-    }, [position]);
-
     const finalContainerStyle = StyleSheet.flatten([
       containerProps?.style,
       styles.container,
@@ -157,7 +88,60 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
         backgroundColor: theme?.colors.white,
       },
       contentContainerProps?.style,
-      contentContainerStyle,
+      {
+        opacity: fadeAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 1],
+        }),
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [100, 0],
+            }),
+          },
+        ],
+      },
+      position === 'top' && {
+        paddingTop:
+          (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop']) ||
+            0) + inset.top,
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-100, 0],
+            }),
+          },
+        ],
+      },
+      position === 'bottom' && {
+        paddingBottom:
+          (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingBottom']) ||
+            0) + inset.bottom,
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [100, 0],
+            }),
+          },
+        ],
+      },
+      position === 'full' && {
+        height: '100%',
+        paddingTop:
+          (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop']) ||
+            0) + inset.top,
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [height / 2, 0],
+            }),
+          },
+        ],
+      },
     ]);
 
     const Background = Animated.createAnimatedComponent(TouchableOpacity);

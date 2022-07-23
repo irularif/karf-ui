@@ -23,12 +23,14 @@ type Layout = {
 };
 
 interface ITooltip extends TooltipProps {
+  text?: string;
   theme?: ITheme;
   isTooltipState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
   buttonPositionState: [Layout, React.Dispatch<React.SetStateAction<Layout>>];
 }
 
 export const Tooltip = ({
+  text,
   isTooltipState,
   theme,
   position = 'top',
@@ -175,7 +177,7 @@ export const Tooltip = ({
     <Portal hostName="@karf-ui" name={`@karf-ui-tooltip-${id}`}>
       <View isAnimated style={finalContainerStyle} onLayout={handleOnLayout}>
         <View style={finalTriangleStyle} />
-        <Text style={finalTextStyle}>Tooltip</Text>
+        <Text style={finalTextStyle}>{text}</Text>
       </View>
     </Portal>
   );

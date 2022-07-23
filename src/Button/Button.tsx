@@ -42,6 +42,7 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
     title,
     Component = View,
     componentProps,
+    tooltip,
     onPress,
     onLongPress,
     ...props
@@ -89,12 +90,14 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
 
     const handleOnLongPress = useCallback(
       (evt: any) => {
-        setIsTooltip(true);
+        if (!!tooltip) {
+          setIsTooltip(true);
+        }
         if (!loading && !disabled && onLongPress) {
           onLongPress(evt);
         }
       },
-      [loading, onLongPress, disabled]
+      [loading, onLongPress, disabled, tooltip]
     );
 
     const accessibilityState = useMemo(
@@ -189,6 +192,7 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
             isTooltipState={isTooltipState}
             buttonPositionState={buttonPositionState}
             theme={theme}
+            text={tooltip}
           />
         </NativeTouchableComponent>
       </View>
