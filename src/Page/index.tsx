@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { merge } from 'lodash';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StatusBar, StatusBarProps, StyleSheet } from 'react-native';
 import { parseStyle } from '../helpers/style';
 import type { RNFunctionComponent } from '../helpers/withTheme';
@@ -25,17 +25,19 @@ export const Page: RNFunctionComponent<PageProps> = withConfig(
       style,
     ]);
 
-    const finalStatusBar = merge(
-      {
-        translucent: true,
-        barStyle: selectTheme({
-          light: 'dark-content',
-          dark: 'light-content',
-        }),
-        backgroundColor: 'transparent',
-      },
-      statusBar
-    );
+    const finalStatusBar = useMemo(() => {
+      return merge(
+        {
+          translucent: true,
+          barStyle: selectTheme({
+            light: 'dark-content',
+            dark: 'light-content',
+          }),
+          backgroundColor: 'transparent',
+        },
+        statusBar
+      );
+    }, [statusBar, selectTheme]);
 
     useFocusEffect(
       useCallback(() => {

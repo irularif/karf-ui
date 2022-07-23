@@ -1,6 +1,8 @@
+import { PortalHost, PortalProvider } from '@gorhom/portal';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions } from 'react-native';
+import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getSize } from '../helpers/responsive';
 import { ScreenProvider } from '../ScreenProvider';
@@ -101,7 +103,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({
           <ThemeProvider themes={themes}>
             <FontLoader fonts={fonts} />
             <WrapperSplashScreenProps Component={SplashScreenComponent}>
-              {children}
+              <PortalProvider>
+                {children}
+                <PortalHost name="@karf-ui" />
+              </PortalProvider>
             </WrapperSplashScreenProps>
           </ThemeProvider>
         </ScreenProvider>

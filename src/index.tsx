@@ -9,6 +9,7 @@ export * from './Page';
 export * from './TopBar';
 export * from './Icon';
 export * from './Button';
+export * from './Modal';
 
 export * from './helpers';
 export * from './hooks';

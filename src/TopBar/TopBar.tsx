@@ -19,8 +19,8 @@ export const TopBarBase: RNFunctionComponent<TopBarProps> = withConfig(
       {
         backgroundColor: theme?.colors?.background,
         paddingTop:
-          inset.top +
-          (getStyleValue(mergeStyle, ['padding', 'paddingVertical', 'paddingTop']) || 0),
+          (getStyleValue(mergeStyle, ['padding', 'paddingVertical', 'paddingTop']) || 0) +
+          inset.top,
       },
     ]);
 

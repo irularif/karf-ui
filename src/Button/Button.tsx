@@ -1,6 +1,6 @@
 import Color from 'color';
 import { get } from 'lodash';
-import React, { Children, Component, useCallback, useMemo } from 'react';
+import React, { Children, Component, useCallback, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   StyleProp,
@@ -15,15 +15,19 @@ import type { RNFunctionComponent } from '../helpers';
 import renderNode from '../helpers/renderNode';
 import withConfig from '../helpers/withTheme';
 import { Text } from '../Text';
-import { View } from '../View';
+import { View, ViewProps } from '../View';
+import { Tooltip, TooltipProps } from './Tooltip';
 
 export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedbackProps {
   TouchableComponent?: typeof Component;
   disabled?: boolean;
   loading?: boolean;
   title?: string;
+  tooltip?: string;
   containerStyle?: StyleProp<ViewStyle>;
   Component?: typeof React.Component;
+  componentProps?: Partial<ViewProps>;
+  tooltipProps?: TooltipProps;
 }
 
 export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
@@ -37,9 +41,24 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
     containerStyle,
     title,
     Component = View,
+    componentProps,
     onPress,
+    onLongPress,
     ...props
   }) => {
+    const ref = useRef<any>();
+    const isTooltipState = useState(false);
+    const [_, setIsTooltip] = isTooltipState;
+    const buttonPositionState = useState({
+      height: 0,
+      width: 0,
+      x: 0,
+      y: 0,
+      pageX: 0,
+      pageY: 0,
+    });
+    const [__, setButtonPosition] = buttonPositionState;
+
     const NativeTouchableComponent =
       TouchableComponent ||
       Platform.select({
@@ -51,7 +70,7 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
     const background =
       Platform.OS === 'android' && Platform.Version >= 21
         ? TouchableNativeFeedback.Ripple(
-            Color(get(style, 'backgroundColor', theme?.colors.primary).toString())
+            Color(get(style, 'backgroundColor', theme?.colors.white).toString())
               .alpha(0.32)
               .rgb()
               .string(),
@@ -66,6 +85,16 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
         }
       },
       [loading, onPress, disabled]
+    );
+
+    const handleOnLongPress = useCallback(
+      (evt: any) => {
+        setIsTooltip(true);
+        if (!loading && !disabled && onLongPress) {
+          onLongPress(evt);
+        }
+      },
+      [loading, onLongPress, disabled]
     );
 
     const accessibilityState = useMemo(
@@ -83,6 +112,7 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
       },
       theme?.style,
       style,
+      componentProps?.style,
     ]);
 
     const finalTitleStyle = StyleSheet.flatten([
@@ -100,18 +130,36 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
     }
 
     return (
-      <View style={finalContainerStyle}>
+      <View
+        innerRef={ref}
+        style={finalContainerStyle}
+        onLayout={(e) => {
+          ref.current?.measure?.(
+            (x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+              setButtonPosition({
+                x,
+                y,
+                width,
+                height,
+                pageX,
+                pageY,
+              });
+            }
+          );
+        }}
+      >
         <NativeTouchableComponent
           onPress={handleOnPress}
           delayPressIn={0}
-          activeOpacity={0.3}
+          activeOpacity={0.6}
           accessibilityRole="button"
           accessibilityState={accessibilityState}
           disabled={disabled}
           background={background}
+          onLongPress={handleOnLongPress}
           {...props}
         >
-          <Component style={finalStyle}>
+          <Component {...componentProps} style={finalStyle}>
             {!loading &&
               childs
                 .sort((elA, elB) => {
@@ -137,6 +185,11 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
                   </React.Fragment>
                 ))}
           </Component>
+          <Tooltip
+            isTooltipState={isTooltipState}
+            buttonPositionState={buttonPositionState}
+            theme={theme}
+          />
         </NativeTouchableComponent>
       </View>
     );
@@ -146,6 +199,7 @@ export const ButtonBase: RNFunctionComponent<ButtonProps> = withConfig(
 const styles = StyleSheet.create({
   container: {
     margin: 4,
+    overflow: 'hidden',
   },
   basic: {
     flexDirection: 'row',
