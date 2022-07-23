@@ -2,9 +2,7 @@ import React from 'react';
 import { StyleSheet, Text as NativeText, TextProps as NativeTextProps } from 'react-native';
 import { parseStyle } from '../helpers/style';
 import type { RNFunctionComponent } from '../helpers/withTheme';
-import withTheme from '../helpers/withTheme';
-import useScreen from '../hooks/screen';
-import type { ResponsiveProps } from '../ScreenProvider/context';
+import withConfig from '../helpers/withTheme';
 import { defaultTheme } from '../ThemeProvider/context';
 
 type Headings = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
@@ -13,10 +11,8 @@ export interface TextProps extends NativeTextProps {
   heading?: Headings;
 }
 
-export const Text: RNFunctionComponent<TextProps> = withTheme(
+export const Text: RNFunctionComponent<TextProps> = withConfig(
   ({ children, heading, style, theme = defaultTheme, ...props }) => {
-    const { select } = useScreen();
-    const responsive: ResponsiveProps = select(props);
     const finalStyle = parseStyle([
       {
         color: theme.colors.black,
@@ -26,7 +22,6 @@ export const Text: RNFunctionComponent<TextProps> = withTheme(
       theme.style,
       !!heading && styles[heading],
       style,
-      responsive?.style,
     ]);
 
     return (

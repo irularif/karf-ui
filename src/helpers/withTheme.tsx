@@ -1,66 +1,75 @@
 import { get, merge } from 'lodash';
-import type { Responsive } from '../ScreenProvider/context';
+import { initialScreen, Responsive, ScreenContext, TScreen } from '../ScreenProvider/context';
 import { defaultTheme, ITheme, IThemeContext, ThemeContext } from '../ThemeProvider/context';
 
 export type RNFunctionComponent<T> = React.FC<
   T & {
     theme?: ITheme;
-  } & Partial<Responsive>
+  } & Partial<Responsive<T>>
 >;
 
-const ThemedComponent = (WrappedComponent: any, displayName?: string) => {
+function withConfig<P = {}>(WrappedComponent: React.ComponentType<P>): React.FunctionComponent<P> {
+  const name = WrappedComponent.displayName || WrappedComponent.name || 'Component';
+
   return Object.assign(
     (props: any) => {
       const { children, ...rest } = props;
 
       return (
-        <ThemeContext.Consumer>
-          {(context) => {
-            // If user isn't using ThemeProvider
-            if (!context) {
-              const newProps = {
-                ...rest,
-                theme: defaultTheme,
-                children,
-              };
+        <ScreenContext.Consumer>
+          {(screen) => {
+            let { size }: TScreen = screen || initialScreen;
 
-              return <WrappedComponent {...newProps} />;
-            }
+            return (
+              <ThemeContext.Consumer>
+                {(context) => {
+                  const responsive = rest[size];
+                  if (!context) {
+                    const style = merge({}, rest.style, responsive?.style);
 
-            const { colors, mode, spacing, font, shadow, styles }: IThemeContext = context;
+                    const newProps = {
+                      ...rest,
+                      ...responsive,
+                      theme: defaultTheme,
+                      style,
+                      children,
+                    };
 
-            const basicStyle = get(styles, 'displayName', {});
-            const basicTheme = {
-              colors,
-              mode,
-              spacing,
-              font,
-              shadow,
-              style: basicStyle,
-            };
-            const theme = merge({}, basicTheme, rest.theme);
+                    return <WrappedComponent {...newProps} />;
+                  }
 
-            const newProps = {
-              ...rest,
-              theme,
-              children,
-            };
+                  const { colors, mode, spacing, font, shadow, styles }: IThemeContext = context;
 
-            return <WrappedComponent {...newProps} />;
+                  const basicStyle = get(styles, 'displayName', {});
+                  const basicTheme = {
+                    colors,
+                    mode,
+                    spacing,
+                    font,
+                    shadow,
+                    style: basicStyle,
+                  };
+                  const theme = merge({}, basicTheme, rest.theme, responsive?.theme);
+                  const style = merge({}, basicStyle, rest.style, responsive?.style);
+
+                  const newProps = {
+                    ...rest,
+                    ...responsive,
+                    style,
+                    theme,
+                    children,
+                  };
+
+                  return <WrappedComponent {...newProps} />;
+                }}
+              </ThemeContext.Consumer>
+            );
           }}
-        </ThemeContext.Consumer>
+        </ScreenContext.Consumer>
       );
     },
-    { displayName: displayName }
+    { displayName: name }
   );
-};
-
-function withTheme<P = {}>(WrappedComponent: React.ComponentType<P>): React.FunctionComponent<P> {
-  const name = WrappedComponent.displayName || WrappedComponent.name || 'Component';
-
-  const Component = ThemedComponent(WrappedComponent, name);
-
-  return Component;
 }
 
-export default withTheme;
+export default withConfig;

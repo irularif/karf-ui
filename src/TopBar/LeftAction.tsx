@@ -1,12 +1,12 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
-import withTheme from '../helpers/withTheme';
+import withConfig from '../helpers/withTheme';
 import { View, ViewProps } from '../View';
 
 export interface TopBarLeftActionProps extends ViewProps {}
 
-export const TopBarLeftAction: RNFunctionComponent<TopBarLeftActionProps> = withTheme(
+export const TopBarLeftAction: RNFunctionComponent<TopBarLeftActionProps> = withConfig(
   ({ style, theme, ...props }) => {
     const finalStyle = StyleSheet.flatten([styles.basic, style]);
 

@@ -1,16 +1,18 @@
 import { createContext } from 'react';
-import { Dimensions, ScaledSize, StyleProp } from 'react-native';
+import { Dimensions, ScaledSize } from 'react-native';
 import { getSize } from '../helpers/responsive';
+import type { ITheme } from '../ThemeProvider/context';
 
 export type TDevice = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type TOrientation = 'PORTRAIT' | 'LANDSCAPE';
-export type IConfigSize = Partial<Record<TDevice, any>>;
+export type IConfigSize<T = any> = Partial<Record<TDevice, T>>;
 
-export interface ResponsiveProps {
-  style: StyleProp<any>;
-}
-
-export type Responsive = Record<TDevice, ResponsiveProps>;
+export type Responsive<T> = Record<
+  TDevice,
+  Omit<T, TDevice> & {
+    theme?: ITheme;
+  }
+>;
 
 export type TScreen = {
   orientation: TOrientation;

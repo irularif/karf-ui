@@ -4,7 +4,7 @@ import React, { useCallback } from 'react';
 import { StatusBar, StatusBarProps, StyleSheet } from 'react-native';
 import { parseStyle } from '../helpers/style';
 import type { RNFunctionComponent } from '../helpers/withTheme';
-import withTheme from '../helpers/withTheme';
+import withConfig from '../helpers/withTheme';
 import useTheme from '../hooks/theme';
 import { defaultTheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
@@ -13,7 +13,7 @@ export interface PageProps extends ViewProps {
   statusBar?: StatusBarProps;
 }
 
-export const Page: RNFunctionComponent<PageProps> = withTheme(
+export const Page: RNFunctionComponent<PageProps> = withConfig(
   ({ style, theme = defaultTheme, statusBar, ...props }) => {
     const { selectTheme } = useTheme();
     const finalStyle = parseStyle([

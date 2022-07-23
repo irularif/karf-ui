@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import { getIconStyle, getIconType } from '../helpers/icon';
-import withTheme from '../helpers/withTheme';
+import withConfig from '../helpers/withTheme';
 import { View } from '../View';
 
 export type IconType =
@@ -31,7 +31,7 @@ export interface IconProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export const Icon: RNFunctionComponent<IconProps> = withTheme(
+export const Icon: RNFunctionComponent<IconProps> = withConfig(
   ({ type, name, solid, brand, style, theme, ...props }) => {
     const size = get(props, 'size', 18);
     const color = get(props, 'color', theme?.colors?.black);
@@ -59,3 +59,5 @@ const styles = StyleSheet.create({
     padding: 2,
   },
 });
+
+Icon.displayName = 'Icon';

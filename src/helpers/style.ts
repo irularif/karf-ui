@@ -4,7 +4,15 @@ import normalize from './normalizeText';
 
 const fontStyle = (style: StyleProp<TextStyle>) => {
   const fontStyle = get(style, 'fontStyle', 'normal');
-  const fontWeight = get(style, 'fontWeight', '400');
+  let fontWeight = get(style, 'fontWeight', '400');
+  switch (fontWeight) {
+    case 'normal':
+      fontWeight = '400';
+      break;
+    case 'bold':
+      fontWeight = '700';
+      break;
+  }
   const fontFamily =
     get(style, 'fontFamily', 'Open Sans').replace(/\s/g, '-') + '_' + fontStyle + '_' + fontWeight;
   const fontSize = normalize(get(style, 'fontSize', 14));

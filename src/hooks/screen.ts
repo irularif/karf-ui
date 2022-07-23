@@ -11,7 +11,7 @@ const useScreen = () => {
   const { size } = context;
 
   const select = useCallback(
-    (params: IConfigSize) => {
+    <T>(params: IConfigSize<T>) => {
       let selected = undefined;
       let pkeys = Object.keys(params) as TDevice[];
       let pidx = pkeys.indexOf(size);

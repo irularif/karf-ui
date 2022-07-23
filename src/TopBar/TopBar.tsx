@@ -3,14 +3,14 @@ import React, { Children } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
-import withTheme from '../helpers/withTheme';
+import withConfig from '../helpers/withTheme';
 import { View, ViewProps } from '../View';
 
 export interface TopBarProps extends ViewProps {
   disableShadow?: boolean;
 }
 
-export const TopBarBase: RNFunctionComponent<TopBarProps> = withTheme(
+export const TopBarBase: RNFunctionComponent<TopBarProps> = withConfig(
   ({ children, style, theme, disableShadow = false, ...props }) => {
     const inset = useSafeAreaInsets();
     const mergeStyle = StyleSheet.flatten([styles.basic, !disableShadow && theme?.shadow, style]);
