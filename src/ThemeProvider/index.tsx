@@ -41,24 +41,30 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
     return theme.lightColors;
   }, [theme]);
 
-  const updateColors = useCallback((theme: Omit<IConfigTheme, 'mode'>) => {
-    setTheme((oldTheme) => {
-      return {
-        ...oldTheme,
-        lightColors: merge(cloneDeep(oldTheme.lightColors), get(theme, 'lightColors', {})),
-        darkColors: merge(cloneDeep(oldTheme.darkColors), get(theme, 'darkColors', {})),
-      };
-    });
-  }, []);
+  const updateColors = useCallback(
+    (theme: Omit<IConfigTheme, 'mode'>) => {
+      setTheme((oldTheme) => {
+        return {
+          ...oldTheme,
+          lightColors: merge(cloneDeep(oldTheme.lightColors), get(theme, 'lightColors', {})),
+          darkColors: merge(cloneDeep(oldTheme.darkColors), get(theme, 'darkColors', {})),
+        };
+      });
+    },
+    [setTheme]
+  );
 
-  const changeTheme = useCallback((themeMode: ThemeMode) => {
-    setTheme((oldTheme) => {
-      return {
-        ...oldTheme,
-        mode: themeMode,
-      };
-    });
-  }, []);
+  const changeTheme = useCallback(
+    (themeMode: ThemeMode) => {
+      setTheme((oldTheme) => {
+        return {
+          ...oldTheme,
+          mode: themeMode,
+        };
+      });
+    },
+    [setTheme]
+  );
 
   const ThemeContextValue = useMemo((): IThemeContext => {
     return {

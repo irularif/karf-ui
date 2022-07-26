@@ -16,6 +16,7 @@ export interface ThemeColors {
   readonly background: string;
   readonly white: string;
   readonly black: string;
+  readonly grey50: string;
   readonly grey100: string;
   readonly grey200: string;
   readonly grey300: string;
@@ -41,47 +42,48 @@ export interface ThemeColors {
 }
 
 export const lightPlatformColors: PlatformColors = {
-  primary: '#1363DF',
-  secondary: '#47B5FF',
-  grey: '#8F9CA9',
-  searchBg: '#36414C',
+  primary: '#47B5FF',
+  secondary: '#1363DF',
+  grey: '#d4d4d4',
+  searchBg: '#404040',
   success: '#38C976',
   error: '#FE5050',
   warning: '#FFA23A',
-}
+};
 
 export const darkPlatformColors: PlatformColors = {
   primary: '#47B5FF',
   secondary: '#1363DF',
-  grey: '#B8C1CC',
-  searchBg: '#36414C',
+  grey: '#d4d4d4',
+  searchBg: '#404040',
   success: '#38C976',
   error: '#FE5050',
   warning: '#FFA23A',
-}
+};
 
 export const lightColors: ThemeColors = {
-  primary: '#1363DF',
-  secondary: '#47B5FF',
+  primary: '#47B5FF',
+  secondary: '#1363DF',
   background: '#ffffff',
   white: '#ffffff',
   black: '#242424',
-  grey100: '#EEF2F6',
-  grey200: '#E7ECF2',
-  grey300: '#D5DDE5',
-  grey400: '#B8C1CC',
-  grey500: '#ADB9C7',
-  grey600: '#8F9CA9',
-  grey700: '#66737F',
-  grey800: '#36414C',
-  grey900: '#272D37',
-  greyOutline: '#B8C1CC',
-  searchBg: '#36414C',
+  grey50: '#fafafa',
+  grey100: '#f5f5f5',
+  grey200: '#e5e5e5',
+  grey300: '#d4d4d4',
+  grey400: '#a3a3a3',
+  grey500: '#737373',
+  grey600: '#525252',
+  grey700: '#404040',
+  grey800: '#262626',
+  grey900: '#171717',
+  greyOutline: '#d4d4d4',
+  searchBg: '#404040',
   success: '#38C976',
   error: '#FE5050',
   warning: '#FFA23A',
-  disabled: '#B8C1CC',
-  divider: StyleSheet.hairlineWidth < 1 ? '#8F9CA9' : '#B8C1CC',
+  disabled: '#a3a3a3',
+  divider: StyleSheet.hairlineWidth < 1 ? '#a3a3a3' : '#d4d4d4',
   platform: {
     ios: lightPlatformColors,
     android: lightPlatformColors,
@@ -91,31 +93,32 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-  primary: '#1363DF',
-  secondary: '#47B5FF',
+  primary: '#47B5FF',
+  secondary: '#1363DF',
   background: '#080808',
   white: '#080808',
   black: '#EEF2F6',
-  grey900: '#EEF2F6',
-  grey800: '#E7ECF2',
-  grey700: '#D5DDE5',
-  grey600: '#B8C1CC',
-  grey500: '#ADB9C7',
-  grey400: '#8F9CA9',
-  grey300: '#66737F',
-  grey200: '#36414C',
-  grey100: '#272D37',
-  greyOutline: '#B8C1CC',
-  searchBg: '#36414C',
+  grey900: '#fafafa',
+  grey800: '#f5f5f5',
+  grey700: '#e5e5e5',
+  grey600: '#d4d4d4',
+  grey500: '#a3a3a3',
+  grey400: '#737373',
+  grey300: '#525252',
+  grey200: '#404040',
+  grey100: '#262626',
+  grey50: '#171717',
+  greyOutline: '#d4d4d4',
+  searchBg: '#404040',
   success: '#38C976',
   error: '#FE5050',
   warning: '#FFA23A',
-  disabled: '#B8C1CC',
-  divider: StyleSheet.hairlineWidth < 1 ? '#8F9CA9' : '#B8C1CC',
+  disabled: '#a3a3a3',
+  divider: StyleSheet.hairlineWidth < 1 ? '#a3a3a3' : '#d4d4d4',
   platform: {
-      ios: darkPlatformColors,
-      android: darkPlatformColors,
-      web: darkPlatformColors,
-      default: darkPlatformColors,
+    ios: darkPlatformColors,
+    android: darkPlatformColors,
+    web: darkPlatformColors,
+    default: darkPlatformColors,
   },
 };

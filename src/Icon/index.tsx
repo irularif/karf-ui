@@ -1,10 +1,9 @@
 import { get } from 'lodash';
 import React from 'react';
-import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, TextStyle } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import { getIconStyle, getIconType } from '../helpers/icon';
-import withConfig from '../helpers/withTheme';
-import { View } from '../View';
+import withConfig from '../helpers/withConfig';
 
 export type IconType =
   | 'material'
@@ -18,8 +17,7 @@ export type IconType =
   | 'evilicon'
   | 'entypo'
   | 'antdesign'
-  | 'font-awesome-5'
-  | string;
+  | 'font-awesome-5';
 
 export interface IconProps {
   type?: IconType;
@@ -28,7 +26,7 @@ export interface IconProps {
   size?: number;
   solid?: boolean;
   brand?: boolean;
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<TextStyle>;
 }
 
 export const Icon: RNFunctionComponent<IconProps> = withConfig(
@@ -40,23 +38,22 @@ export const Icon: RNFunctionComponent<IconProps> = withConfig(
     const finalStyle = StyleSheet.flatten([styles.basic, theme?.style, style]);
 
     return (
-      <View style={finalStyle}>
-        <IconComponent
-          name={name}
-          size={size}
-          width={size}
-          height={size}
-          color={color}
-          {...iconSpecificStyle}
-        />
-      </View>
+      <IconComponent
+        {...iconSpecificStyle}
+        name={name}
+        size={size}
+        width={size}
+        height={size}
+        color={color}
+        style={finalStyle}
+      />
     );
   }
 );
 
 const styles = StyleSheet.create({
   basic: {
-    padding: 2,
+    marginHorizontal: 2,
   },
 });
 

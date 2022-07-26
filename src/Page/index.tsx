@@ -2,10 +2,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { merge } from 'lodash';
 import React, { useCallback, useMemo } from 'react';
 import { StatusBar, StatusBarProps, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { parseStyle } from '../helpers/style';
-import type { RNFunctionComponent } from '../helpers/withTheme';
-import withConfig from '../helpers/withTheme';
-import useTheme from '../hooks/theme';
+import type { RNFunctionComponent } from '../helpers/withConfig';
+import withConfig from '../helpers/withConfig';
+import { useTheme } from '../hooks';
 import { defaultTheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
 
@@ -15,10 +16,13 @@ export interface PageProps extends ViewProps {
 
 export const Page: RNFunctionComponent<PageProps> = withConfig(
   ({ style, theme = defaultTheme, statusBar, ...props }) => {
+    const inset = useSafeAreaInsets();
     const { selectTheme } = useTheme();
     const finalStyle = parseStyle([
       {
         backgroundColor: theme.colors.background,
+        paddingLeft: inset.left,
+        paddingRight: inset.right,
       },
       styles.basic,
       theme.style,
@@ -42,7 +46,7 @@ export const Page: RNFunctionComponent<PageProps> = withConfig(
     useFocusEffect(
       useCallback(() => {
         StatusBar.setBarStyle(finalStatusBar.barStyle);
-      }, [])
+      }, [finalStatusBar])
     );
 
     return (

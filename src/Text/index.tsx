@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text as NativeText, TextProps as NativeTextProps } from 'react-native';
 import { parseStyle } from '../helpers/style';
-import type { RNFunctionComponent } from '../helpers/withTheme';
-import withConfig from '../helpers/withTheme';
+import type { RNFunctionComponent } from '../helpers/withConfig';
+import withConfig from '../helpers/withConfig';
 import { defaultTheme } from '../ThemeProvider/context';
 
 type Headings = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';

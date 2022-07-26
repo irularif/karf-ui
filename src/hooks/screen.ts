@@ -2,7 +2,7 @@ import { get } from 'lodash';
 import { useCallback, useContext } from 'react';
 import { Device, IConfigSize, ScreenContext, TDevice } from '../ScreenProvider/context';
 
-const useScreen = () => {
+export const useScreen = () => {
   const context = useContext(ScreenContext);
   if (context === undefined) {
     throw new Error('useScreen must be used within a ScreenProvider');
@@ -35,5 +35,3 @@ const useScreen = () => {
     select,
   };
 };
-
-export default useScreen;

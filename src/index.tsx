@@ -10,8 +10,13 @@ export * from './TopBar';
 export * from './Icon';
 export * from './Button';
 export * from './Modal';
+export * from './ScrollView';
+export * from './KeyboardView';
+export * from './List';
 
 export * from './helpers';
 export * from './hooks';
+
+export { default as Color } from 'color';
 
 export type TFonts = Array<TFont>;

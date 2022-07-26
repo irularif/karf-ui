@@ -1,9 +1,17 @@
 import { Portal } from '@gorhom/portal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, StyleSheet, TouchableOpacity, ViewProps } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  ViewProps,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
-import withConfig from '../helpers/withTheme';
+import withConfig from '../helpers/withConfig';
+import { useKeyboard } from '../hooks';
 import { View } from '../View';
 
 const { height } = Dimensions.get('window');
@@ -30,11 +38,14 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
     position = 'center',
     theme,
     children,
+    ...props
   }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const keyboardAnim = useRef(new Animated.Value(0)).current;
     const inset = useSafeAreaInsets();
     const [visible, setVisible] = useState(false);
     const [isReady, setIsReady] = useState(false);
+    const { isVisible: isVisibleKeyboard, height: keyboardHeight } = useKeyboard();
 
     const open = useCallback(() => {
       setVisible(true);
@@ -68,10 +79,34 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
       }
     }, [isOpen]);
 
+    useEffect(() => {
+      if (isVisibleKeyboard) {
+        Animated.spring(keyboardAnim, {
+          toValue: 1,
+          useNativeDriver: false,
+          bounciness: 0,
+        }).start();
+      } else {
+        Animated.spring(keyboardAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          overshootClamping: true,
+        }).start();
+      }
+    }, [isVisibleKeyboard]);
+
     const finalContainerStyle = StyleSheet.flatten([
       containerProps?.style,
       styles.container,
       stylesContent[position],
+      Platform.select({
+        ios: {
+          paddingBottom: keyboardAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, keyboardHeight],
+          }),
+        },
+      }),
     ]);
     const finalContainerButtonStyle = StyleSheet.flatten([
       styles.containerButton,
@@ -103,6 +138,8 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
         ],
       },
       position === 'top' && {
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
         paddingTop:
           (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop']) ||
             0) + inset.top,
@@ -116,6 +153,8 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
         ],
       },
       position === 'bottom' && {
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
         paddingBottom:
           (getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingBottom']) ||
             0) + inset.bottom,
@@ -152,7 +191,8 @@ export const Modal: RNFunctionComponent<ModalProps> = withConfig(
 
     return (
       <Portal hostName="@karf-ui" name={`@karf-ui-modal-${id}`}>
-        <View style={finalContainerStyle} pointerEvents="box-none">
+        {/* @ts-ignore */}
+        <View {...props} isAnimated style={finalContainerStyle} pointerEvents="box-none">
           <Background
             activeOpacity={1}
             style={finalContainerButtonStyle}

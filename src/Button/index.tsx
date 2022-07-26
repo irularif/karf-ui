@@ -2,6 +2,7 @@ import React from 'react';
 import type { RNFunctionComponent } from '../helpers';
 import { Icon, IconProps } from '../Icon';
 import { ButtonBase } from './Button';
+import { Label } from './Label';
 
 const ButtonLeftIcon: RNFunctionComponent<IconProps> = (props) => <Icon {...props} />;
 ButtonLeftIcon.displayName = 'ButtonLeftIcon';
@@ -12,4 +13,5 @@ export const Button = Object.assign(ButtonBase, {
   Icon: ButtonLeftIcon,
   LeftIcon: ButtonLeftIcon,
   RightIcon: ButtonRightIcon,
+  Label: Label,
 });

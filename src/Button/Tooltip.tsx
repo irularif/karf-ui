@@ -29,14 +29,15 @@ interface ITooltip extends TooltipProps {
   buttonPositionState: [Layout, React.Dispatch<React.SetStateAction<Layout>>];
 }
 
-export const Tooltip = ({
+export const Tooltip: React.FC<ITooltip> = ({
   text,
   isTooltipState,
   theme,
   position = 'top',
   buttonPositionState,
   duration = 3000,
-}: ITooltip) => {
+  ...props
+}) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [layout, setLayout] = useState({
     height: 0,
@@ -175,7 +176,7 @@ export const Tooltip = ({
 
   return (
     <Portal hostName="@karf-ui" name={`@karf-ui-tooltip-${id}`}>
-      <View isAnimated style={finalContainerStyle} onLayout={handleOnLayout}>
+      <View {...props} isAnimated style={finalContainerStyle} onLayout={handleOnLayout}>
         <View style={finalTriangleStyle} />
         <Text style={finalTextStyle}>{text}</Text>
       </View>
@@ -241,3 +242,5 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
   },
 });
+
+Tooltip.displayName = 'Button.Tooltip';

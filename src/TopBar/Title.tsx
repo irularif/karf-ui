@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
-import withConfig from '../helpers/withTheme';
+import withConfig from '../helpers/withConfig';
 import { Text, TextProps } from '../Text';
 
 export interface TopBarTitleProps extends TextProps {}
@@ -18,7 +18,9 @@ const styles = StyleSheet.create({
   basic: {
     flex: 1,
     marginVertical: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 12,
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
 

@@ -1,7 +1,7 @@
 import { useCallback, useContext } from 'react';
 import { ThemeContext, ThemeMode } from '../ThemeProvider/context';
 
-const useTheme = () => {
+export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
@@ -18,5 +18,3 @@ const useTheme = () => {
 
   return { ...context, selectTheme };
 };
-
-export default useTheme;

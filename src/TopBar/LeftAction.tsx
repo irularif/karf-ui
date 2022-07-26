@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
-import withConfig from '../helpers/withTheme';
+import withConfig from '../helpers/withConfig';
 import { View, ViewProps } from '../View';
 
 export interface TopBarLeftActionProps extends ViewProps {}

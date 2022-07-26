@@ -2,8 +2,8 @@ import { get } from 'lodash';
 import React, { Children } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getStyleValue, RNFunctionComponent } from '../helpers';
-import withConfig from '../helpers/withTheme';
+import type { RNFunctionComponent } from '../helpers';
+import withConfig from '../helpers/withConfig';
 import { View, ViewProps } from '../View';
 
 export interface TopBarProps extends ViewProps {
@@ -13,15 +13,14 @@ export interface TopBarProps extends ViewProps {
 export const TopBarBase: RNFunctionComponent<TopBarProps> = withConfig(
   ({ children, style, theme, disableShadow = false, ...props }) => {
     const inset = useSafeAreaInsets();
-    const mergeStyle = StyleSheet.flatten([styles.basic, !disableShadow && theme?.shadow, style]);
     const finalStyle = StyleSheet.flatten([
-      mergeStyle,
+      styles.basic,
       {
         backgroundColor: theme?.colors?.background,
-        paddingTop:
-          (getStyleValue(mergeStyle, ['padding', 'paddingVertical', 'paddingTop']) || 0) +
-          inset.top,
+        paddingTop: inset.top,
       },
+      !disableShadow && theme?.shadow,
+      style,
     ]);
 
     return (
@@ -48,6 +47,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 99,
   },
 });
 

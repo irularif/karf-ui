@@ -9,9 +9,11 @@ export type IConfigSize<T = any> = Partial<Record<TDevice, T>>;
 
 export type Responsive<T> = Record<
   TDevice,
-  Omit<T, TDevice> & {
-    theme?: ITheme;
-  }
+  Partial<
+    Omit<T, TDevice> & {
+      theme?: ITheme;
+    }
+  >
 >;
 
 export type TScreen = {

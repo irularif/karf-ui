@@ -1,9 +1,9 @@
-import React, { MutableRefObject, Ref } from 'react';
+import React, { MutableRefObject } from 'react';
 import { Animated, View as NativeView, ViewProps as NativeViewProps } from 'react-native';
 import renderNode from '../helpers/renderNode';
 import { parseStyle } from '../helpers/style';
-import type { RNFunctionComponent } from '../helpers/withTheme';
-import withConfig from '../helpers/withTheme';
+import type { RNFunctionComponent } from '../helpers/withConfig';
+import withConfig from '../helpers/withConfig';
 import { Text } from '../Text';
 import { defaultTheme } from '../ThemeProvider/context';
 
