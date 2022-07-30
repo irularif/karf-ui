@@ -1,15 +1,5 @@
 import { StyleSheet } from 'react-native';
 
-interface PlatformColors {
-  primary: string;
-  secondary: string;
-  grey: string;
-  searchBg: string;
-  success: string;
-  error: string;
-  warning: string;
-}
-
 export interface ThemeColors {
   readonly primary: string;
   readonly secondary: string;
@@ -33,33 +23,8 @@ export interface ThemeColors {
   readonly error: string;
   readonly disabled: string;
   readonly divider: string;
-  readonly platform: {
-    ios: PlatformColors;
-    android: PlatformColors;
-    web: PlatformColors;
-    default: PlatformColors;
-  };
+  readonly [key: string & {}]: string;
 }
-
-export const lightPlatformColors: PlatformColors = {
-  primary: '#47B5FF',
-  secondary: '#1363DF',
-  grey: '#d4d4d4',
-  searchBg: '#404040',
-  success: '#38C976',
-  error: '#FE5050',
-  warning: '#FFA23A',
-};
-
-export const darkPlatformColors: PlatformColors = {
-  primary: '#47B5FF',
-  secondary: '#1363DF',
-  grey: '#d4d4d4',
-  searchBg: '#404040',
-  success: '#38C976',
-  error: '#FE5050',
-  warning: '#FFA23A',
-};
 
 export const lightColors: ThemeColors = {
   primary: '#47B5FF',
@@ -84,12 +49,6 @@ export const lightColors: ThemeColors = {
   warning: '#FFA23A',
   disabled: '#a3a3a3',
   divider: StyleSheet.hairlineWidth < 1 ? '#a3a3a3' : '#d4d4d4',
-  platform: {
-    ios: lightPlatformColors,
-    android: lightPlatformColors,
-    web: lightPlatformColors,
-    default: lightPlatformColors,
-  },
 };
 
 export const darkColors: ThemeColors = {
@@ -115,10 +74,4 @@ export const darkColors: ThemeColors = {
   warning: '#FFA23A',
   disabled: '#a3a3a3',
   divider: StyleSheet.hairlineWidth < 1 ? '#a3a3a3' : '#d4d4d4',
-  platform: {
-    ios: darkPlatformColors,
-    android: darkPlatformColors,
-    web: darkPlatformColors,
-    default: darkPlatformColors,
-  },
 };

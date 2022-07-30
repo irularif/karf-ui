@@ -42,7 +42,7 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
   }, [theme]);
 
   const updateColors = useCallback(
-    (theme: Omit<IConfigTheme, 'mode'>) => {
+    (theme: Pick<IConfigTheme, 'lightColors' | 'darkColors'>) => {
       setTheme((oldTheme) => {
         return {
           ...oldTheme,

@@ -1,13 +1,37 @@
 import { createContext } from 'react';
-import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import type { AppbarProps } from '../Appbar';
 import type { TFont } from '../AppProvider/font/FontLoader';
 import { lightColors, ThemeColors } from '../helpers/colors';
 import { defaultSpacing, ThemeSpacing } from '../helpers/spacing';
+import type { IconProps } from '../Icon';
+import type { KeyboardViewProps } from '../KeyboardView';
+import type { ListProps } from '../List';
+import type { ModalProps } from '../Modal';
+import type { PageProps } from '../Page';
+import type { ScrollViewProps } from '../ScrollView';
+import type { TextProps } from '../Text';
+import type { TooltipProps } from '../Tooltip';
+import type { ViewProps } from '../View';
 
 export interface IStyles {
-  Text: StyleProp<TextStyle>;
-  View: StyleProp<ViewStyle>;
-  Icon: StyleProp<ViewStyle>;
+  Text: Pick<TextProps, 'style'>;
+  View: Pick<ViewProps, 'style'>;
+  Icon: Pick<IconProps, 'style' | 'type' | 'color' | 'size'>;
+  KeyboardView: Pick<KeyboardViewProps, 'style' | 'contentContainerStyle'>;
+  ScrollView: Pick<ScrollViewProps, 'style' | 'indicatorStyle' | 'contentContainerStyle'>;
+  List: Pick<
+    ListProps<any>,
+    | 'style'
+    | 'indicatorStyle'
+    | 'columnWrapperStyle'
+    | 'contentContainerStyle'
+    | 'ListFooterComponentStyle'
+    | 'ListHeaderComponentStyle'
+  >;
+  Modal: Pick<ModalProps, 'style'>;
+  Page: Pick<PageProps, 'style'>;
+  Tooltip: Pick<TooltipProps, 'style'>;
+  TopBar: Pick<AppbarProps, 'style'>;
 }
 
 export type ThemeMode = 'light' | 'dark';
@@ -37,7 +61,8 @@ export interface IConfigTheme {
   styles?: Partial<IStyles>;
 }
 
-export interface ITheme extends Omit<IConfigTheme, 'lightColors' | 'darkColors' | 'font' | 'styles'> {
+export interface ITheme
+  extends Omit<IConfigTheme, 'lightColors' | 'darkColors' | 'font' | 'styles'> {
   style: IStyles[keyof IStyles];
   colors: ThemeColors;
   font: {

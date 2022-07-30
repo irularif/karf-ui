@@ -11,26 +11,30 @@ export interface TextProps extends NativeTextProps {
   heading?: Headings;
 }
 
-export const Text: RNFunctionComponent<TextProps> = withConfig(
-  ({ children, heading, style, theme = defaultTheme, ...props }) => {
-    const finalStyle = parseStyle([
-      {
-        color: theme.colors.black,
-      },
-      styles.basic,
-      theme.font,
-      theme.style,
-      !!heading && styles[heading],
-      style,
-    ]);
+const _Text: RNFunctionComponent<TextProps> = ({
+  children,
+  heading,
+  style,
+  theme = defaultTheme,
+  ...props
+}) => {
+  const finalStyle = parseStyle([
+    {
+      color: theme.colors.black,
+    },
+    styles.basic,
+    theme.font,
+    theme.style,
+    !!heading && styles[heading],
+    style,
+  ]);
 
-    return (
-      <NativeText {...props} accessibilityRole="text" style={finalStyle}>
-        {children}
-      </NativeText>
-    );
-  }
-);
+  return (
+    <NativeText {...props} accessibilityRole="text" style={finalStyle}>
+      {children}
+    </NativeText>
+  );
+};
 
 const styles = StyleSheet.create({
   basic: {
@@ -61,3 +65,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+_Text.displayName = 'Text';
+export const Text = withConfig(_Text);

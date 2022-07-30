@@ -14,49 +14,52 @@ export interface PageProps extends ViewProps {
   statusBar?: StatusBarProps;
 }
 
-export const Page: RNFunctionComponent<PageProps> = withConfig(
-  ({ style, theme = defaultTheme, statusBar, ...props }) => {
-    const inset = useSafeAreaInsets();
-    const { selectTheme } = useTheme();
-    const finalStyle = parseStyle([
+const _Page: RNFunctionComponent<PageProps> = ({
+  style,
+  theme = defaultTheme,
+  statusBar,
+  ...props
+}) => {
+  const inset = useSafeAreaInsets();
+  const { selectTheme } = useTheme();
+  const finalStyle = parseStyle([
+    {
+      backgroundColor: theme.colors.background,
+      paddingLeft: inset.left,
+      paddingRight: inset.right,
+    },
+    styles.basic,
+    theme.style,
+    style,
+  ]);
+
+  const finalStatusBar = useMemo(() => {
+    return merge(
       {
-        backgroundColor: theme.colors.background,
-        paddingLeft: inset.left,
-        paddingRight: inset.right,
+        translucent: true,
+        barStyle: selectTheme({
+          light: 'dark-content',
+          dark: 'light-content',
+        }),
+        backgroundColor: 'transparent',
       },
-      styles.basic,
-      theme.style,
-      style,
-    ]);
-
-    const finalStatusBar = useMemo(() => {
-      return merge(
-        {
-          translucent: true,
-          barStyle: selectTheme({
-            light: 'dark-content',
-            dark: 'light-content',
-          }),
-          backgroundColor: 'transparent',
-        },
-        statusBar
-      );
-    }, [statusBar, selectTheme]);
-
-    useFocusEffect(
-      useCallback(() => {
-        StatusBar.setBarStyle(finalStatusBar.barStyle);
-      }, [finalStatusBar])
+      statusBar
     );
+  }, [statusBar, selectTheme]);
 
-    return (
-      <>
-        <StatusBar {...finalStatusBar} />
-        <View {...props} style={finalStyle} />
-      </>
-    );
-  }
-);
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     StatusBar.setBarStyle(finalStatusBar.barStyle);
+  //   }, [finalStatusBar])
+  // );
+
+  return (
+    <>
+      <StatusBar {...finalStatusBar} />
+      <View {...props} style={finalStyle} />
+    </>
+  );
+};
 
 const styles = StyleSheet.create({
   basic: {
@@ -64,3 +67,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 });
+
+_Page.displayName = 'Page';
+export const Page = withConfig(_Page);

@@ -5,13 +5,11 @@ import withConfig from '../helpers/withConfig';
 
 export interface KeyboardViewProps extends KeyboardAvoidingViewProps {}
 
-export const KeyboardView: RNFunctionComponent<KeyboardViewProps> = withConfig(
-  ({ style, ...props }) => {
-    const finalStyle = StyleSheet.flatten([styles.basic, style]);
+const _KeyboardView: RNFunctionComponent<KeyboardViewProps> = ({ style, ...props }) => {
+  const finalStyle = StyleSheet.flatten([styles.basic, style]);
 
-    return <KeyboardAvoidingView behavior="height" {...props} style={finalStyle} />;
-  }
-);
+  return <KeyboardAvoidingView behavior="height" {...props} style={finalStyle} />;
+};
 
 const styles = StyleSheet.create({
   basic: {
@@ -19,3 +17,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 });
+
+_KeyboardView.displayName = 'KeyboardView';
+export const KeyboardView = withConfig(_KeyboardView);

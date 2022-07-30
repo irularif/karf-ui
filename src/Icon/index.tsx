@@ -6,6 +6,7 @@ import { getIconStyle, getIconType } from '../helpers/icon';
 import withConfig from '../helpers/withConfig';
 
 export type IconType =
+  | (string & {})
   | 'material'
   | 'material-community'
   | 'simple-line-icon'
@@ -17,7 +18,10 @@ export type IconType =
   | 'evilicon'
   | 'entypo'
   | 'antdesign'
-  | 'font-awesome-5';
+  | 'font-awesome-5'
+  | 'feather'
+  | 'ant-design'
+  | 'fontisto';
 
 export interface IconProps {
   type?: IconType;
@@ -29,27 +33,33 @@ export interface IconProps {
   style?: StyleProp<TextStyle>;
 }
 
-export const Icon: RNFunctionComponent<IconProps> = withConfig(
-  ({ type, name, solid, brand, style, theme, ...props }) => {
-    const size = get(props, 'size', 18);
-    const color = get(props, 'color', theme?.colors?.black);
-    const IconComponent = getIconType(type);
-    const iconSpecificStyle = getIconStyle(type, { solid, brand });
-    const finalStyle = StyleSheet.flatten([styles.basic, theme?.style, style]);
+const _Icon: RNFunctionComponent<IconProps> = ({
+  type,
+  name,
+  solid,
+  brand,
+  style,
+  theme,
+  size = 18,
+  ...props
+}) => {
+  const color = get(props, 'color', theme?.colors?.black);
+  const IconComponent = getIconType(type, name);
+  const iconSpecificStyle = getIconStyle(type, { solid, brand });
+  const finalStyle = StyleSheet.flatten([styles.basic, theme?.style, style]);
 
-    return (
-      <IconComponent
-        {...iconSpecificStyle}
-        name={name}
-        size={size}
-        width={size}
-        height={size}
-        color={color}
-        style={finalStyle}
-      />
-    );
-  }
-);
+  return (
+    <IconComponent
+      {...iconSpecificStyle}
+      name={name}
+      size={size}
+      width={size}
+      height={size}
+      color={color}
+      style={finalStyle}
+    />
+  );
+};
 
 const styles = StyleSheet.create({
   basic: {
@@ -57,4 +67,5 @@ const styles = StyleSheet.create({
   },
 });
 
-Icon.displayName = 'Icon';
+_Icon.displayName = 'Icon';
+export const Icon = withConfig(_Icon);

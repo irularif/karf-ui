@@ -4,15 +4,13 @@ import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Text, TextProps } from '../Text';
 
-export interface TopBarTitleProps extends TextProps {}
+export interface AppbarTitleProps extends TextProps {}
 
-export const TopBarTitle: RNFunctionComponent<TopBarTitleProps> = withConfig(
-  ({ style, ...props }) => {
-    const finalStyle = StyleSheet.flatten([styles.basic, style]);
+const _AppbarTitle: RNFunctionComponent<AppbarTitleProps> = ({ style, ...props }) => {
+  const finalStyle = StyleSheet.flatten([styles.basic, style]);
 
-    return <Text {...props} style={finalStyle} />;
-  }
-);
+  return <Text {...props} style={finalStyle} />;
+};
 
 const styles = StyleSheet.create({
   basic: {
@@ -24,4 +22,5 @@ const styles = StyleSheet.create({
   },
 });
 
-TopBarTitle.displayName = 'TopBar.Title';
+_AppbarTitle.displayName = 'Appbar.Title';
+export const AppbarTitle = withConfig(_AppbarTitle);

@@ -1,4 +1,4 @@
-import { get } from 'lodash';
+import { cloneDeep, get } from 'lodash';
 import { StyleProp, StyleSheet, TextStyle } from 'react-native';
 import normalize from './normalizeText';
 
@@ -38,11 +38,27 @@ export const parseStyle = (...style: StyleProp<any>): StyleProp<any> => {
   return _style;
 };
 
-export const getStyleValue = (style: StyleProp<any>, attr: Array<string>) => {
-  let value: any = undefined;
+export const getStyleValue = (
+  style: StyleProp<any>,
+  attr: Array<string>,
+  defaultValue: any = undefined
+) => {
+  let value: any = defaultValue;
   attr.forEach((key) => {
     value = get(style, key, value);
   });
 
   return value;
+};
+
+export const trimStyle = (style: any, prefixs: string[]) => {
+  const s = cloneDeep(style);
+  Object.keys(s).forEach((k) => {
+    const isExist = prefixs.filter((x) => k.indexOf(x) === 0);
+    if (isExist.length > 0) {
+      delete s[k];
+    }
+  });
+
+  return s;
 };

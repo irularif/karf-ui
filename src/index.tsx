@@ -6,13 +6,14 @@ export * from './ThemeProvider/context';
 export * from './Text';
 export * from './View';
 export * from './Page';
-export * from './TopBar';
+export * from './Appbar';
 export * from './Icon';
 export * from './Button';
 export * from './Modal';
 export * from './ScrollView';
 export * from './KeyboardView';
 export * from './List';
+export * from './Tooltip';
 
 export * from './helpers';
 export * from './hooks';

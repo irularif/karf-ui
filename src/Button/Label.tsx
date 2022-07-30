@@ -9,7 +9,7 @@ export interface LabelProps extends TextProps {
   theme?: ITheme;
 }
 
-export const Label: RNFunctionComponent<LabelProps> = withConfig(({ style, theme, ...props }) => {
+const _Label: RNFunctionComponent<LabelProps> = ({ style, theme, ...props }) => {
   const finalStyle = StyleSheet.flatten([
     styles.label,
     {
@@ -19,7 +19,7 @@ export const Label: RNFunctionComponent<LabelProps> = withConfig(({ style, theme
   ]);
 
   return <Text {...props} style={finalStyle} />;
-});
+};
 
 const styles = StyleSheet.create({
   label: {
@@ -28,4 +28,5 @@ const styles = StyleSheet.create({
   },
 });
 
-Label.displayName = 'ButtonLabel';
+_Label.displayName = 'ButtonLabel';
+export const Label = withConfig(_Label);

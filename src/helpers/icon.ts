@@ -1,12 +1,14 @@
 import type { IconType } from '../Icon';
 
-const customIcons: any = {};
+type ListIcon = Record<string, any>;
 
-export const registerIcon = (id: string, customIcon: any) => {
+const customIcons: Record<string, ListIcon> = {};
+
+export const registerIcon = (id: string, customIcon: ListIcon) => {
   customIcons[id] = customIcon;
 };
 
-export const getIconType = (type: IconType = 'ionicon'): any => {
+export const getIconType = (type: IconType = 'ionicon', name: string): any => {
   switch (type) {
     case 'zocial':
       return require('react-native-vector-icons/Zocial').default;
@@ -39,6 +41,9 @@ export const getIconType = (type: IconType = 'ionicon'): any => {
       return require('react-native-vector-icons/Fontisto').default;
     default:
       if (Object.prototype.hasOwnProperty.call(customIcons, type)) {
+        if (Object.prototype.hasOwnProperty.call(customIcons[type], name)) {
+          return customIcons[type][name];
+        }
         return customIcons[type];
       }
       return require('react-native-vector-icons/Ionicons').default;

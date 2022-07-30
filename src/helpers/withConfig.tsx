@@ -1,4 +1,5 @@
 import { get, merge } from 'lodash';
+import React from 'react';
 import { useScreen } from '../hooks';
 import type { Responsive } from '../ScreenProvider/context';
 import { defaultTheme, ITheme, IThemeContext, ThemeContext } from '../ThemeProvider/context';
@@ -17,50 +18,46 @@ function withConfig<P extends unknown>(
 
   return Object.assign(
     (props: any) => {
-      const { children, ...rest } = props;
       const { size, select } = useScreen();
 
       return (
         <ThemeContext.Consumer>
           {(context) => {
-            const responsive = select(rest);
+            const responsive = select(props);
             if (!context) {
-              const style = merge({}, rest.style, responsive?.style);
-
-              const newProps = {
-                key: size,
-                ...rest,
-                ...responsive,
-                theme: defaultTheme,
-                style,
-                children,
-              };
+              const newProps = merge(
+                {
+                  ...props,
+                },
+                {
+                  theme: defaultTheme,
+                },
+                responsive
+              );
 
               return <WrappedComponent {...newProps} />;
             }
 
             const { colors, mode, spacing, font, shadow, styles }: IThemeContext = context;
 
-            const basicStyle = get(styles, 'displayName', {});
             const basicTheme = {
               colors,
               mode,
               spacing,
               font,
               shadow,
-              style: basicStyle,
             };
-            const theme = merge({}, basicTheme, rest.theme, responsive?.theme);
-            const style = merge({}, basicStyle, rest.style, responsive?.style);
+            const styleProps = get(styles, name, {});
 
-            const newProps = {
-              key: size,
-              ...rest,
-              ...responsive,
-              style,
-              theme,
-              children,
-            };
+            const newProps = merge(
+              {
+                ...props,
+              },
+              styleProps,
+              { theme: basicTheme },
+              props,
+              responsive
+            );
 
             return <WrappedComponent {...newProps} />;
           }}
