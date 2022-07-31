@@ -18,7 +18,7 @@ function withConfig<P extends unknown>(
 
   return Object.assign(
     (props: any) => {
-      const { size, select } = useScreen();
+      const { select } = useScreen();
 
       return (
         <ThemeContext.Consumer>

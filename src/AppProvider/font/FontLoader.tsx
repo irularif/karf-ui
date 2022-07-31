@@ -2,7 +2,7 @@ import * as Font from 'expo-font';
 import { useEffect } from 'react';
 
 import { fonts as libFonts } from '../../../assets/fonts';
-import { useApp } from '../context';
+import { useApp } from '../../hooks/app';
 
 export type TFont = {
   name: string;

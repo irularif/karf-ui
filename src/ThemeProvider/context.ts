@@ -88,8 +88,12 @@ export const defaultTheme: ITheme = {
 
 export interface IThemeContext extends Omit<IConfigTheme, 'lightColors' | 'darkColors'> {
   colors: ThemeColors;
+}
+
+export interface IThemeDispatchContext {
   updateColors: (theme: Omit<IConfigTheme, 'mode'>) => void;
   changeTheme: (themeMode: ThemeMode) => void;
 }
 
 export const ThemeContext = createContext<IThemeContext | undefined>(undefined);
+export const ThemeDispatchContext = createContext<IThemeDispatchContext | undefined>(undefined);

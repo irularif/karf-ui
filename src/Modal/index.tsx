@@ -1,51 +1,60 @@
 import { Portal } from '@gorhom/portal';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   Platform,
   StyleSheet,
   TouchableOpacity,
-  ViewProps,
+  ViewProps
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { v4 as uuid } from 'uuid';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { useKeyboard } from '../hooks';
+import { useModal, useModalState } from '../hooks/modal';
 import { View } from '../View';
 
 const { height } = Dimensions.get('window');
 
 export interface ModalProps extends ViewProps {
-  id: string;
-  isOpen: boolean;
+  id?: string;
+  isOpen?: boolean;
   isBlocking?: boolean;
   onDismiss?: () => void;
   containerProps?: Partial<ViewProps>;
   contentContainerProps?: Partial<ViewProps>;
   children?: React.ReactNode;
   position?: 'top' | 'bottom' | 'center' | 'full';
+  insetTop?: boolean;
+  insetBottom?: boolean;
 }
 
 const _Modal: RNFunctionComponent<ModalProps> = ({
-  id,
+  id: _id,
   containerProps,
   contentContainerProps,
-  isOpen,
+  isOpen: _isOpen,
   isBlocking,
   onDismiss,
   position = 'center',
+  insetTop = false,
+  insetBottom = false,
   style,
   theme,
   children,
   ...props
 }) => {
+  const id = useRef(_id || uuid()).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const keyboardAnim = useRef(new Animated.Value(0)).current;
   const inset = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const { isVisible: isVisibleKeyboard, height: keyboardHeight } = useKeyboard();
+  const { isOpen, setIsOpen } = useModal(id);
+  const { addUpdateState, deleteState } = useModalState();
 
   const open = useCallback(() => {
     setVisible(true);
@@ -53,9 +62,9 @@ const _Modal: RNFunctionComponent<ModalProps> = ({
     Animated.spring(fadeAnim, {
       toValue: 1,
       useNativeDriver: true,
-      bounciness: position === 'center' ? 10 : 0,
+      bounciness: 0,
     }).start();
-  }, [fadeAnim, position]);
+  }, [fadeAnim]);
 
   const close = useCallback(() => {
     setIsReady(false);
@@ -67,17 +76,35 @@ const _Modal: RNFunctionComponent<ModalProps> = ({
       if (finished) {
         setVisible(false);
         onDismiss && onDismiss();
+        if (_id && isOpen) {
+          setIsOpen(false);
+        }
       }
     });
-  }, [onDismiss]);
+  }, [fadeAnim, onDismiss, isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (_id) {
+      addUpdateState({
+        id: _id,
+        isOpen: false,
+      });
+    }
+
+    return () => {
+      if (_id) {
+        deleteState(_id);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen || _isOpen) {
       open();
     } else {
       close();
     }
-  }, [isOpen]);
+  }, [isOpen, _isOpen]);
 
   useEffect(() => {
     if (isVisibleKeyboard) {
@@ -94,6 +121,10 @@ const _Modal: RNFunctionComponent<ModalProps> = ({
       }).start();
     }
   }, [isVisibleKeyboard]);
+
+  if (!visible) {
+    return null;
+  }
 
   const finalContainerStyle = StyleSheet.flatten([
     style,
@@ -138,57 +169,60 @@ const _Modal: RNFunctionComponent<ModalProps> = ({
         },
       ],
     },
-    position === 'top' && {
-      borderTopLeftRadius: 0,
-      borderTopRightRadius: 0,
+    {
+      top: {
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-100, 0],
+            }),
+          },
+        ],
+      },
+      bottom: {
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [100, 0],
+            }),
+          },
+        ],
+      },
+      full: {
+        borderRadius: 0,
+        height: '100%',
+        transform: [
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [height / 2, 0],
+            }),
+          },
+        ],
+      },
+      center: {
+        maxWidth: '80%',
+      },
+    }[position],
+    insetTop && {
       paddingTop:
         getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop'], 0) +
         inset.top,
-      transform: [
-        {
-          translateY: fadeAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [-100, 0],
-          }),
-        },
-      ],
     },
-    position === 'bottom' && {
-      borderBottomLeftRadius: 0,
-      borderBottomRightRadius: 0,
+    insetBottom && {
       paddingBottom:
         getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingBottom'], 0) +
         inset.bottom,
-      transform: [
-        {
-          translateY: fadeAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [100, 0],
-          }),
-        },
-      ],
-    },
-    position === 'full' && {
-      height: '100%',
-      paddingTop:
-        getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop'], 0) +
-        inset.top,
-      transform: [
-        {
-          translateY: fadeAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [height / 2, 0],
-          }),
-        },
-      ],
     },
   ]);
 
   const Background = Animated.createAnimatedComponent(TouchableOpacity);
-
-  if (!visible) {
-    return null;
-  }
 
   return (
     <Portal hostName="@karf-ui" name={`@karf-ui-modal-${id}`}>
@@ -250,4 +284,4 @@ const stylesContent = StyleSheet.create({
 });
 
 _Modal.displayName = 'Modal';
-export const Modal = withConfig(_Modal);
+export const Modal = withConfig(memo(_Modal));

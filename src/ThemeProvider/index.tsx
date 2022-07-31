@@ -1,8 +1,9 @@
-import { cloneDeep, get, merge } from 'lodash';
-import React, { useCallback, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { get, merge } from 'lodash';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { defaultSpacing } from '../helpers';
 import { darkColors, lightColors } from '../helpers/colors';
-import { IConfigTheme, IThemeContext, ThemeContext, ThemeMode } from './context';
+import { IConfigTheme, ThemeContext, ThemeDispatchContext, ThemeMode } from './context';
 
 interface ThemeProviderProps {
   themes?: Partial<IConfigTheme>;
@@ -34,6 +35,13 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
     styles: get(themes, 'styles', {}),
   });
 
+  const getThemeFromStorage = useCallback(async () => {
+    const value = await AsyncStorage.getItem('theme');
+    if (value) {
+      setTheme(JSON.parse(value));
+    }
+  }, []);
+
   const currentColors = useMemo(() => {
     if (theme.mode === 'dark') {
       return theme.darkColors;
@@ -42,31 +50,31 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
   }, [theme]);
 
   const updateColors = useCallback(
-    (theme: Pick<IConfigTheme, 'lightColors' | 'darkColors'>) => {
-      setTheme((oldTheme) => {
-        return {
-          ...oldTheme,
-          lightColors: merge(cloneDeep(oldTheme.lightColors), get(theme, 'lightColors', {})),
-          darkColors: merge(cloneDeep(oldTheme.darkColors), get(theme, 'darkColors', {})),
-        };
+    (newColors: Pick<IConfigTheme, 'lightColors' | 'darkColors'>) => {
+      const newTheme = merge({}, theme, {
+        lightColors: get(newColors, 'lightColors', {}),
+        darkColors: get(newColors, 'darkColors', {}),
       });
+
+      setTheme(newTheme);
+      AsyncStorage.setItem('theme', JSON.stringify(newTheme));
     },
-    [setTheme]
+    [theme]
   );
 
   const changeTheme = useCallback(
     (themeMode: ThemeMode) => {
-      setTheme((oldTheme) => {
-        return {
-          ...oldTheme,
-          mode: themeMode,
-        };
+      const newTheme = merge({}, theme, {
+        mode: themeMode,
       });
+
+      setTheme(newTheme);
+      AsyncStorage.setItem('theme', JSON.stringify(newTheme));
     },
-    [setTheme]
+    [theme]
   );
 
-  const ThemeContextValue = useMemo((): IThemeContext => {
+  const ThemeContextValue = useMemo(() => {
     return {
       mode: theme.mode,
       spacing: theme.spacing,
@@ -80,10 +88,23 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
       shadow: theme.shadow,
       styles: theme.styles,
       colors: currentColors,
+    };
+  }, [theme]);
+
+  const ThemeDispatchContextValue = useMemo(() => {
+    return {
       updateColors: updateColors,
       changeTheme: changeTheme,
     };
   }, [theme]);
 
-  return <ThemeContext.Provider value={ThemeContextValue}>{children}</ThemeContext.Provider>;
+  useEffect(() => {
+    getThemeFromStorage();
+  }, []);
+
+  return (
+    <ThemeDispatchContext.Provider value={ThemeDispatchContextValue}>
+      <ThemeContext.Provider value={ThemeContextValue}>{children}</ThemeContext.Provider>
+    </ThemeDispatchContext.Provider>
+  );
 };

@@ -1,28 +1,68 @@
 import React from 'react';
 import {
-  ScrollView as NativeScrollView, ScrollViewProps as NativeScrollViewProps, StyleSheet
+  ScrollView as NativeScrollView,
+  ScrollViewProps as NativeScrollViewProps,
+  StyleSheet,
 } from 'react-native';
-import type { RNFunctionComponent } from '../helpers';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getStyleValue, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { KeyboardView, KeyboardViewProps } from '../KeyboardView';
 
 export interface ScrollViewProps extends NativeScrollViewProps {
   keyboardViewProps?: KeyboardViewProps;
+  insetTop?: boolean;
+  insetBottom?: boolean;
+  stretchContent?: boolean;
 }
 
 const _ScrollView: RNFunctionComponent<ScrollViewProps> = ({
   style,
   keyboardViewProps,
+  insetBottom = false,
+  insetTop = false,
+  stretchContent = true,
   ...props
 }) => {
-  const finalStyle = StyleSheet.flatten([style]);
+  const inset = useSafeAreaInsets();
+
+  const finalKeyboardStyle = StyleSheet.flatten([
+    keyboardViewProps?.style,
+    !stretchContent && {
+      flexGrow: 0,
+      flexShrink: 0,
+    },
+  ]);
+
+  const finalStyle = StyleSheet.flatten([
+    styles.basic,
+    style,
+    insetTop && {
+      paddingTop: getStyleValue(style, ['padding', 'paddingVertical', 'paddingTop'], 0) + inset.top,
+    },
+    insetBottom && {
+      paddingBottom:
+        getStyleValue(style, ['padding', 'paddingVertical', 'paddingBottom'], 0) + inset.bottom,
+    },
+    !stretchContent && {
+      flexGrow: 0,
+      flexShrink: 0,
+    },
+  ]);
 
   return (
-    <KeyboardView {...keyboardViewProps}>
+    <KeyboardView {...keyboardViewProps} style={finalKeyboardStyle}>
       <NativeScrollView {...props} style={finalStyle} />
     </KeyboardView>
   );
 };
+
+const styles = StyleSheet.create({
+  basic: {
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+});
 
 _ScrollView.displayName = 'ScrollView';
 export const ScrollView = withConfig(_ScrollView);

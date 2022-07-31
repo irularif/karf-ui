@@ -1,6 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native';
 import { merge } from 'lodash';
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { StatusBar, StatusBarProps, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { parseStyle } from '../helpers/style';

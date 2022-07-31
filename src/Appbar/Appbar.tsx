@@ -11,6 +11,7 @@ export interface AppbarProps extends ViewProps {
   disableShadow?: boolean;
   insetTop?: boolean;
   insetBottom?: boolean;
+  backgroundColor?: string;
 }
 
 const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
@@ -20,6 +21,7 @@ const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
   disableShadow = false,
   insetTop = false,
   insetBottom = false,
+  backgroundColor,
   ...props
 }) => {
   const inset = useSafeAreaInsets();
@@ -27,7 +29,7 @@ const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
   const finalContainerStyle = StyleSheet.flatten([
     styles.container,
     {
-      backgroundColor: theme?.colors?.background,
+      backgroundColor: backgroundColor || theme?.colors?.background,
     },
     !disableShadow && theme?.shadow,
     !!insetTop && {

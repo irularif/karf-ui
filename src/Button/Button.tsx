@@ -11,11 +11,13 @@ import {
   TouchableNativeFeedbackProps,
   TouchableOpacity,
   TouchableOpacityProps,
-  ViewStyle,
+  ViewStyle
 } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import renderNode from '../helpers/renderNode';
 import withConfig from '../helpers/withConfig';
+import { useModal } from '../hooks/modal';
+import type { TModalProps } from '../Modal/context';
 import { View, ViewProps } from '../View';
 import { Label } from './Label';
 
@@ -31,6 +33,8 @@ export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedb
   variant?: 'text' | 'outlined' | 'filled' | 'tonal';
   loadingProps?: Partial<ActivityIndicatorProps>;
   shadow?: boolean;
+  modalId?: string;
+  modalProps?: Omit<TModalProps, 'id'>;
 }
 
 const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
@@ -48,12 +52,15 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
   variant = 'filled',
   loadingProps,
   shadow = false,
+  modalId,
+  modalProps,
   onPress,
   onPressIn,
   onPressOut,
   ...props
 }) => {
   const [isPressIn, setIsPressIn] = useState(false);
+  const { isOpen, setIsOpen } = useModal(modalId);
 
   const NativeTouchableComponent =
     TouchableComponent ||
@@ -63,13 +70,22 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
       ios: TouchableOpacity,
     });
 
+  const handleModal = useCallback(() => {
+    if (!modalId) return;
+
+    setIsOpen(!isOpen, modalProps);
+  }, [modalId, modalProps, setIsOpen, isOpen]);
+
   const handleOnPress = useCallback(
     (evt: any) => {
-      if (!loading && !disabled && onPress) {
-        onPress(evt);
+      if (!loading && !disabled) {
+        handleModal();
+        if (onPress) {
+          onPress(evt);
+        }
       }
     },
-    [loading, onPress, disabled]
+    [loading, onPress, disabled, modalProps, handleModal]
   );
 
   const handleOnPressIn = useCallback(

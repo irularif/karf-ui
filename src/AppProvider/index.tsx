@@ -6,11 +6,12 @@ import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getSize } from '../helpers/responsive';
 import { KeyboardProvider } from '../KeyboardView/Provider';
+import { ModalProvider } from '../Modal/Provider';
 import { ScreenProvider } from '../ScreenProvider';
 import { initialScreen } from '../ScreenProvider/context';
 import { ThemeProvider } from '../ThemeProvider';
 import type { IConfigTheme } from '../ThemeProvider/context';
-import { AppContext, TApp } from './context';
+import { AppContext, AppDispatchContext, TApp } from './context';
 import { FontLoader, TFonts } from './font/FontLoader';
 import { SplashScreenProps, WrapperSplashScreenProps } from './splashScreen/WrapperSplashScreen';
 
@@ -62,10 +63,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     () => ({
       ...app,
       isLoading,
+    }),
+    [app, isLoading]
+  );
+
+  const AppDispatchContextValue = useMemo(
+    () => ({
       updateInitialize,
       setIsReady,
     }),
-    [app, isLoading, updateInitialize]
+    []
   );
 
   const handleOrientation = useCallback(() => {
@@ -98,22 +105,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   }, []);
 
   return (
-    <AppContext.Provider value={AppContextValue}>
-      <SafeAreaProvider>
-        <ScreenProvider>
-          <ThemeProvider themes={themes}>
-            <KeyboardProvider>
-              <FontLoader fonts={fonts} />
-              <WrapperSplashScreenProps Component={SplashScreenComponent}>
-                <PortalProvider>
-                  {children}
-                  <PortalHost name="@karf-ui" />
-                </PortalProvider>
-              </WrapperSplashScreenProps>
-            </KeyboardProvider>
-          </ThemeProvider>
-        </ScreenProvider>
-      </SafeAreaProvider>
-    </AppContext.Provider>
+    <AppDispatchContext.Provider value={AppDispatchContextValue}>
+      <AppContext.Provider value={AppContextValue}>
+        <SafeAreaProvider>
+          <ScreenProvider>
+            <ThemeProvider themes={themes}>
+              <KeyboardProvider>
+                <FontLoader fonts={fonts} />
+                <WrapperSplashScreenProps Component={SplashScreenComponent}>
+                  <PortalProvider>
+                    <ModalProvider>
+                      {children}
+                      <PortalHost name="@karf-ui" />
+                    </ModalProvider>
+                  </PortalProvider>
+                </WrapperSplashScreenProps>
+              </KeyboardProvider>
+            </ThemeProvider>
+          </ScreenProvider>
+        </SafeAreaProvider>
+      </AppContext.Provider>
+    </AppDispatchContext.Provider>
   );
 };

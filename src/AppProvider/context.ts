@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import type { ScaledSize } from 'react-native';
 import type { TDevice, TOrientation } from '../ScreenProvider/context';
 
@@ -10,21 +10,16 @@ export type TApp = {
   size: TDevice;
   orientation: TOrientation;
   scaleSize: ScaledSize;
-}
+};
 
 export type TAppContext = TApp & {
   isLoading: boolean;
+};
+
+export type TAppDispatchContext = {
   updateInitialize: (key: TInitialState, state: boolean) => void;
   setIsReady: (value: boolean) => void;
 };
 
 export const AppContext = React.createContext<TAppContext | undefined>(undefined);
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within a AppProvider');
-  }
-
-  return context;
-};
+export const AppDispatchContext = React.createContext<TAppDispatchContext | undefined>(undefined);

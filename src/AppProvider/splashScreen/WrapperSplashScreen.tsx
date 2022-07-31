@@ -1,6 +1,6 @@
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useCallback, useEffect } from 'react';
-import { useApp } from '../context';
+import { useApp } from '../../hooks/app';
 
 export interface SplashScreenProps {
   hideSplashScreen: () => void;
@@ -30,7 +30,7 @@ export const WrapperSplashScreenProps = ({
       }
     }
   }, [isLoading, setIsReady, SplashScreenComponent]);
-  
+
   return (
     <>
       {!!isReady && children}
