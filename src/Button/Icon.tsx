@@ -1,3 +1,4 @@
+import { get } from 'lodash';
 import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
@@ -16,10 +17,11 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
   size = 24,
   brand,
   color,
+  theme,
   rounded = true,
   ...props
 }) => {
-  const finalStyle = StyleSheet.flatten([
+  const _finalStyle = StyleSheet.flatten([
     styles.basic,
     {
       width: size + 12,
@@ -31,15 +33,17 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
     props.style,
   ]);
 
+  const _color = color || get(_finalStyle, 'backgroundColor', theme?.colors.black);
+
   return (
-    <Button variant='text' {...props} style={finalStyle}>
+    <Button variant="text" {...props} style={_finalStyle}>
       <Icon
         name={name}
         type={type}
         size={size}
         brand={brand}
         solid={solid}
-        color={color}
+        color={_color}
         style={styles.icon}
       />
     </Button>
@@ -58,6 +62,6 @@ const styles = StyleSheet.create({
   },
 });
 
-_ButtonIcon.displayName = 'ButtonIcon';
+_ButtonIcon.displayName = 'Button.Icon';
 
 export const ButtonIcon = withConfig(_ButtonIcon);

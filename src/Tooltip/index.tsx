@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, Pressable, StyleSheet } from 'react-native';
 import { v4 as uuid } from 'uuid';
 import { RNFunctionComponent, trimStyle } from '../helpers';
-import renderNode from '../helpers/renderNode';
+import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
 import { Text } from '../Text';
 import { View, ViewProps } from '../View';

@@ -14,6 +14,8 @@ export * from './ScrollView';
 export * from './KeyboardView';
 export * from './List';
 export * from './Tooltip';
+export * from './Field';
+export * from './Input';
 
 export * from './helpers';
 export * from './hooks';

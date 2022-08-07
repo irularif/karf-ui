@@ -4,9 +4,9 @@ import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Text, TextProps } from '../Text';
 
-export interface ButtonLabelProps extends TextProps {}
+export interface FieldLabelProps extends TextProps {}
 
-const _Label: RNFunctionComponent<ButtonLabelProps> = ({ style, theme, ...props }) => {
+const _FieldLabel: RNFunctionComponent<FieldLabelProps> = ({ style, theme, ...props }) => {
   const finalStyle = StyleSheet.flatten([
     styles.label,
     {
@@ -21,11 +21,10 @@ const _Label: RNFunctionComponent<ButtonLabelProps> = ({ style, theme, ...props 
 const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
-    textAlign: 'center',
-    flexGrow: 1,
-    flexShrink: 1,
+    fontSize: 12,
+    marginBottom: 4,
   },
 });
 
-_Label.displayName = 'Button.Label';
-export const Label = withConfig(_Label);
+_FieldLabel.displayName = 'Field.Label';
+export const FieldLabel = withConfig(_FieldLabel);

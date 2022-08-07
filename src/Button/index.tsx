@@ -2,15 +2,15 @@ import React from 'react';
 import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Icon, IconProps } from '../Icon';
-import { ButtonBase } from './Button';
-import { ButtonIcon } from './Icon';
-import { Label } from './Label';
+import { ButtonBase, ButtonProps } from './Button';
+import { ButtonIcon, ButtonIconProps } from './Icon';
+import { Label, ButtonLabelProps } from './Label';
 
 const _ButtonLeftIcon: RNFunctionComponent<IconProps> = (props) => <Icon {...props} />;
-_ButtonLeftIcon.displayName = 'ButtonLeftIcon';
+_ButtonLeftIcon.displayName = 'Button.LeftIcon';
 const ButtonLeftIcon = withConfig(_ButtonLeftIcon);
 const _ButtonRightIcon: RNFunctionComponent<IconProps> = (props) => <Icon {...props} />;
-_ButtonRightIcon.displayName = 'ButtonRightIcon';
+_ButtonRightIcon.displayName = 'Button.RightIcon';
 const ButtonRightIcon = withConfig(_ButtonRightIcon);
 
 export const Button = Object.assign(ButtonBase, {
@@ -19,3 +19,5 @@ export const Button = Object.assign(ButtonBase, {
   RightIcon: ButtonRightIcon,
   Label: Label,
 });
+
+export type { ButtonProps, ButtonLabelProps, IconProps, ButtonIconProps };

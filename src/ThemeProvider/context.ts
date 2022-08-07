@@ -1,6 +1,8 @@
 import { createContext } from 'react';
-import type { AppbarProps } from '../Appbar';
+import type { AppbarLeftActionProps, AppbarProps, AppbarRightActionProps, AppbarTitleProps } from '../Appbar';
 import type { TFont } from '../AppProvider/font/FontLoader';
+import type { ButtonIconProps, ButtonLabelProps, IconProps as BIconProps } from '../Button';
+import type { ButtonProps } from '../Button/Button';
 import { lightColors, ThemeColors } from '../helpers/colors';
 import { defaultSpacing, ThemeSpacing } from '../helpers/spacing';
 import type { IconProps } from '../Icon';
@@ -31,7 +33,15 @@ export interface IStyles {
   Modal: Pick<ModalProps, 'style'>;
   Page: Pick<PageProps, 'style'>;
   Tooltip: Pick<TooltipProps, 'style'>;
-  TopBar: Pick<AppbarProps, 'style'>;
+  Appbar: Pick<AppbarProps, 'style'>;
+  'Appbar.Title': Pick<AppbarTitleProps, 'style'>;
+  'Appbar.LeftAction': Pick<AppbarLeftActionProps, 'style'>;
+  'Appbar.RightAction': Pick<AppbarRightActionProps, 'style'>;
+  Button: Pick<ButtonProps, 'style'>;
+  'Button.Label': Pick<ButtonLabelProps, 'style'>;
+  'Button.LeftIcon': Pick<BIconProps, 'style' | 'type' | 'color' | 'size'>;
+  'Button.RightIcon': Pick<BIconProps, 'style' | 'type' | 'color' | 'size'>;
+  'Button.Icon': Pick<ButtonIconProps, 'style' | 'type' | 'color' | 'size'>;
 }
 
 export type ThemeMode = 'light' | 'dark';

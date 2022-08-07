@@ -1,12 +1,21 @@
 import { Portal } from '@gorhom/portal';
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Animated,
   Dimensions,
   Platform,
   StyleSheet,
   TouchableOpacity,
-  ViewProps
+  ViewProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { v4 as uuid } from 'uuid';
@@ -17,6 +26,10 @@ import { useModal, useModalState } from '../hooks/modal';
 import { View } from '../View';
 
 const { height } = Dimensions.get('window');
+
+export type ModalMethods = {
+  toggleModal: () => void;
+};
 
 export interface ModalProps extends ViewProps {
   id?: string;
@@ -29,162 +42,157 @@ export interface ModalProps extends ViewProps {
   position?: 'top' | 'bottom' | 'center' | 'full';
   insetTop?: boolean;
   insetBottom?: boolean;
+  ref?: React.Ref<ModalMethods>;
 }
 
-const _Modal: RNFunctionComponent<ModalProps> = ({
-  id: _id,
-  containerProps,
-  contentContainerProps,
-  isOpen: _isOpen,
-  isBlocking,
-  onDismiss,
-  position = 'center',
-  insetTop = false,
-  insetBottom = false,
-  style,
-  theme,
-  children,
-  ...props
-}) => {
-  const id = useRef(_id || uuid()).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const keyboardAnim = useRef(new Animated.Value(0)).current;
-  const inset = useSafeAreaInsets();
-  const [visible, setVisible] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const { isVisible: isVisibleKeyboard, height: keyboardHeight } = useKeyboard();
-  const { isOpen, setIsOpen } = useModal(id);
-  const { addUpdateState, deleteState } = useModalState();
+const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
+  (
+    {
+      id: _id,
+      containerProps,
+      contentContainerProps,
+      isOpen: _isOpen,
+      isBlocking,
+      onDismiss,
+      position = 'center',
+      insetTop = false,
+      insetBottom = false,
+      style,
+      theme,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const id = useRef(_id || uuid()).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const keyboardAnim = useRef(new Animated.Value(0)).current;
+    const inset = useSafeAreaInsets();
+    const [visible, setVisible] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    const { isVisible: isVisibleKeyboard, height: keyboardHeight } = useKeyboard();
+    const { isOpen, setIsOpen } = useModal(id);
+    const { addUpdateState, deleteState } = useModalState();
 
-  const open = useCallback(() => {
-    setVisible(true);
-    setIsReady(true);
-    Animated.spring(fadeAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      bounciness: 0,
-    }).start();
-  }, [fadeAnim]);
-
-  const close = useCallback(() => {
-    setIsReady(false);
-    Animated.spring(fadeAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      overshootClamping: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        setVisible(false);
-        onDismiss && onDismiss();
-        if (_id && isOpen) {
-          setIsOpen(false);
-        }
-      }
-    });
-  }, [fadeAnim, onDismiss, isOpen]);
-
-  useEffect(() => {
-    if (_id) {
-      addUpdateState({
-        id: _id,
-        isOpen: false,
-      });
-    }
-
-    return () => {
-      if (_id) {
-        deleteState(_id);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isOpen || _isOpen) {
-      open();
-    } else {
-      close();
-    }
-  }, [isOpen, _isOpen]);
-
-  useEffect(() => {
-    if (isVisibleKeyboard) {
-      Animated.spring(keyboardAnim, {
+    const open = useCallback(() => {
+      setVisible(true);
+      setIsReady(true);
+      Animated.spring(fadeAnim, {
         toValue: 1,
-        useNativeDriver: false,
+        useNativeDriver: true,
         bounciness: 0,
       }).start();
-    } else {
-      Animated.spring(keyboardAnim, {
+    }, [fadeAnim]);
+
+    const close = useCallback(() => {
+      setIsReady(false);
+      Animated.spring(fadeAnim, {
         toValue: 0,
-        useNativeDriver: false,
+        useNativeDriver: true,
         overshootClamping: true,
-      }).start();
-    }
-  }, [isVisibleKeyboard]);
+      }).start(({ finished }) => {
+        if (finished) {
+          setVisible(false);
+          onDismiss && onDismiss();
+          if (_id && isOpen) {
+            setIsOpen(false);
+          }
+        }
+      });
+    }, [fadeAnim, onDismiss, isOpen]);
 
-  if (!visible) {
-    return null;
-  }
+    const _insetBottom = useMemo(() => {
+      return isVisibleKeyboard ? false : insetBottom;
+    }, [insetBottom, isVisibleKeyboard]);
 
-  const finalContainerStyle = StyleSheet.flatten([
-    style,
-    containerProps?.style,
-    styles.container,
-    stylesContent[position],
-    Platform.select({
-      ios: {
-        paddingBottom: keyboardAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, keyboardHeight],
-        }),
-      },
-    }),
-  ]);
-  const finalContainerButtonStyle = StyleSheet.flatten([
-    styles.containerButton,
-    {
-      opacity: fadeAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 1],
+    const forwardRef = useCallback(
+      () => ({
+        toggleModal: () => {
+          if (!visible) {
+            open();
+          } else {
+            close();
+          }
+        },
       }),
-    },
-  ]);
-  const finalContentContainerStyle = StyleSheet.flatten([
-    styles.contentContainer,
-    {
-      backgroundColor: theme?.colors.white,
-    },
-    contentContainerProps?.style,
-    {
-      opacity: fadeAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 1],
-      }),
-      transform: [
-        {
-          translateY: fadeAnim.interpolate({
+      []
+    );
+
+    useImperativeHandle(ref, forwardRef, []);
+
+    useEffect(() => {
+      if (_id) {
+        addUpdateState({
+          id: _id,
+          isOpen: false,
+        });
+      }
+
+      return () => {
+        if (_id) {
+          deleteState(_id);
+        }
+      };
+    }, []);
+
+    useEffect(() => {
+      if (isOpen || _isOpen) {
+        open();
+      } else {
+        close();
+      }
+    }, [isOpen, _isOpen]);
+
+    useEffect(() => {
+      if (isVisibleKeyboard) {
+        Animated.spring(keyboardAnim, {
+          toValue: 1,
+          useNativeDriver: false,
+          bounciness: 0,
+        }).start();
+      } else {
+        Animated.spring(keyboardAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          overshootClamping: true,
+        }).start();
+      }
+    }, [isVisibleKeyboard]);
+
+    const finalContainerStyle = StyleSheet.flatten([
+      style,
+      containerProps?.style,
+      styles.container,
+      stylesContent[position],
+      Platform.select({
+        ios: {
+          paddingBottom: keyboardAnim.interpolate({
             inputRange: [0, 1],
-            outputRange: [100, 0],
+            outputRange: [0, keyboardHeight],
           }),
         },
-      ],
-    },
-    {
-      top: {
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        transform: [
-          {
-            translateY: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [-100, 0],
-            }),
-          },
-        ],
+      }),
+    ]);
+    const finalContainerButtonStyle = StyleSheet.flatten([
+      styles.containerButton,
+      {
+        opacity: fadeAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 1],
+        }),
       },
-      bottom: {
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 0,
+    ]);
+    const finalContentContainerStyle = StyleSheet.flatten([
+      styles.contentContainer,
+      {
+        backgroundColor: theme?.colors.white,
+      },
+      contentContainerProps?.style,
+      {
+        opacity: fadeAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 1],
+        }),
         transform: [
           {
             translateY: fadeAnim.interpolate({
@@ -194,54 +202,83 @@ const _Modal: RNFunctionComponent<ModalProps> = ({
           },
         ],
       },
-      full: {
-        borderRadius: 0,
-        height: '100%',
-        transform: [
-          {
-            translateY: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [height / 2, 0],
-            }),
-          },
-        ],
+      {
+        top: {
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+          transform: [
+            {
+              translateY: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-100, 0],
+              }),
+            },
+          ],
+        },
+        bottom: {
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          transform: [
+            {
+              translateY: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [100, 0],
+              }),
+            },
+          ],
+        },
+        full: {
+          borderRadius: 0,
+          height: '100%',
+          transform: [
+            {
+              translateY: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [height / 2, 0],
+              }),
+            },
+          ],
+        },
+        center: {
+          maxWidth: '80%',
+        },
+      }[position],
+      insetTop && {
+        paddingTop:
+          getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop'], 0) +
+          inset.top,
       },
-      center: {
-        maxWidth: '80%',
+      _insetBottom && {
+        paddingBottom:
+          getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingBottom'], 0) +
+          inset.bottom,
       },
-    }[position],
-    insetTop && {
-      paddingTop:
-        getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingTop'], 0) +
-        inset.top,
-    },
-    insetBottom && {
-      paddingBottom:
-        getStyleValue(contentContainerProps, ['padding', 'paddingVertical', 'paddingBottom'], 0) +
-        inset.bottom,
-    },
-  ]);
+    ]);
+    const Background = Animated.createAnimatedComponent(TouchableOpacity);
 
-  const Background = Animated.createAnimatedComponent(TouchableOpacity);
+    if (!visible) {
+      return null;
+    }
 
-  return (
-    <Portal hostName="@karf-ui" name={`@karf-ui-modal-${id}`}>
-      {/* @ts-ignore */}
-      <View {...props} isAnimated style={finalContainerStyle} pointerEvents="box-none">
-        <Background
-          activeOpacity={1}
-          style={finalContainerButtonStyle}
-          onPress={close}
-          disabled={isBlocking || !isReady}
-        />
+    return (
+      <Portal hostName="@karf-ui" name={`@karf-ui-modal-${id}`}>
         {/* @ts-ignore */}
-        <View isAnimated style={finalContentContainerStyle}>
-          {children}
+        <View {...props} isAnimated style={finalContainerStyle} pointerEvents="box-none">
+          <Background
+            activeOpacity={1}
+            style={finalContainerButtonStyle}
+            onPress={close}
+            disabled={isBlocking || !isReady}
+          />
+          {/* @ts-ignore */}
+          <View isAnimated style={finalContentContainerStyle}>
+            {children}
+          </View>
         </View>
-      </View>
-    </Portal>
-  );
-};
+      </Portal>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {

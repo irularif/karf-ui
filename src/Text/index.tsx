@@ -1,5 +1,10 @@
-import React from 'react';
-import { StyleSheet, Text as NativeText, TextProps as NativeTextProps } from 'react-native';
+import React, { forwardRef } from 'react';
+import {
+  Animated,
+  StyleSheet,
+  Text as NativeText,
+  TextProps as NativeTextProps,
+} from 'react-native';
 import { parseStyle } from '../helpers/style';
 import type { RNFunctionComponent } from '../helpers/withConfig';
 import withConfig from '../helpers/withConfig';
@@ -9,32 +14,31 @@ type Headings = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
 export interface TextProps extends NativeTextProps {
   heading?: Headings;
+  isAnimated?: boolean;
 }
 
-const _Text: RNFunctionComponent<TextProps> = ({
-  children,
-  heading,
-  style,
-  theme = defaultTheme,
-  ...props
-}) => {
-  const finalStyle = parseStyle([
-    {
-      color: theme.colors.black,
-    },
-    styles.basic,
-    theme.font,
-    theme.style,
-    !!heading && styles[heading],
-    style,
-  ]);
+const _Text: RNFunctionComponent<TextProps> = forwardRef(
+  ({ children, heading, style, theme = defaultTheme, isAnimated = false, ...props }, ref) => {
+    const finalStyle = parseStyle(
+      {
+        color: theme.colors.black,
+      },
+      styles.basic,
+      theme.font,
+      theme.style,
+      !!heading && styles[heading],
+      style,
+    );
 
-  return (
-    <NativeText {...props} accessibilityRole="text" style={finalStyle}>
-      {children}
-    </NativeText>
-  );
-};
+    const Component = isAnimated ? Animated.Text : NativeText;
+
+    return (
+      <Component {...props} accessibilityRole="text" style={finalStyle} ref={ref}>
+        {children}
+      </Component>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   basic: {

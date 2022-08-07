@@ -14,7 +14,7 @@ import {
   ViewStyle
 } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
-import renderNode from '../helpers/renderNode';
+import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
 import { useModal } from '../hooks/modal';
 import type { TModalProps } from '../Modal/context';
@@ -252,8 +252,8 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
             .sort((elA, elB) => {
               const nameA = get(elA, 'type.displayName', get(elA, 'type.name', ''));
               const nameB = get(elB, 'type.displayName', get(elB, 'type.name', ''));
-              const idxA = nameA === 'ButtonLeftIcon' ? 0 : nameA === 'ButtonRightIcon' ? 2 : 1;
-              const idxB = nameB === 'ButtonLeftIcon' ? 0 : nameB === 'ButtonRightIcon' ? 2 : 1;
+              const idxA = nameA === 'Button.LeftIcon' ? 0 : nameA === 'Button.RightIcon' ? 2 : 1;
+              const idxB = nameB === 'Button.LeftIcon' ? 0 : nameB === 'Button.RightIcon' ? 2 : 1;
               if (idxA < idxB) {
                 return -1;
               }
@@ -264,13 +264,13 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
             })
             .map((child, index) => {
               const name = get(child, 'type.displayName', get(child, 'type.name', ''));
-              const isIcon = ['ButtonLeftIcon', 'ButtonRightIcon', 'Icon'].includes(name);
-              const isLabel = typeof child === 'string' || ['ButtonLabel', 'Text'].includes(name);
+              const isIcon = ['Button.LeftIcon', 'Button.RightIcon', 'Icon'].includes(name);
+              const isLabel = typeof child === 'string' || ['Button.Label', 'Text'].includes(name);
               let props: any = {};
               if (React.isValidElement(child)) {
                 props = child.props;
               }
-              if (name === 'ButtonIcon') {
+              if (name === 'Button.Icon') {
                 console.warn(
                   "Button.Icon must be independent and don't use it as a child. Use Button.LeftIcon or Button.RightIcon instead."
                 );

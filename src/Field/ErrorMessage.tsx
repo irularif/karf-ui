@@ -4,13 +4,17 @@ import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Text, TextProps } from '../Text';
 
-export interface ButtonLabelProps extends TextProps {}
+export interface FieldErrorMessageProps extends TextProps {}
 
-const _Label: RNFunctionComponent<ButtonLabelProps> = ({ style, theme, ...props }) => {
+const _FieldErrorMessage: RNFunctionComponent<FieldErrorMessageProps> = ({
+  style,
+  theme,
+  ...props
+}) => {
   const finalStyle = StyleSheet.flatten([
     styles.label,
     {
-      color: theme?.colors.black,
+      color: theme?.colors.error,
     },
     style,
   ]);
@@ -21,11 +25,11 @@ const _Label: RNFunctionComponent<ButtonLabelProps> = ({ style, theme, ...props 
 const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
-    textAlign: 'center',
-    flexGrow: 1,
-    flexShrink: 1,
+    fontSize: 12,
+    marginBottom: 8,
+    marginHorizontal: 4,
   },
 });
 
-_Label.displayName = 'Button.Label';
-export const Label = withConfig(_Label);
+_FieldErrorMessage.displayName = 'Field.ErrorMessage';
+export const FieldErrorMessage = withConfig(_FieldErrorMessage);

@@ -1,6 +1,7 @@
-import React from 'react';
+import { get } from 'lodash';
+import React, { Children } from 'react';
 
-const renderNode = (Component: any, content: any, defaultProps: any = {}) => {
+export const renderNode = (Component: any, content: any, defaultProps: any = {}) => {
   if (content == null || content === false) {
     return null;
   }
@@ -25,4 +26,20 @@ const renderNode = (Component: any, content: any, defaultProps: any = {}) => {
   }
   return <Component {...defaultProps} {...content} />;
 };
-export default renderNode;
+
+export const findNode = (children: React.ReactNode, name: string) => {
+  if (children == null) {
+    return null;
+  }
+  
+  const child = Children.toArray(children).find((child) => {
+    const childName = get(child, 'type.displayName', get(child, 'type.name', ''));
+
+    return childName === name || childName.includes(name);
+  });
+
+  if (React.isValidElement(child)) {
+    return child;
+  }
+  return null;
+};

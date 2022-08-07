@@ -3,7 +3,7 @@ import React, { Children } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
-import renderNode from '../helpers/renderNode';
+import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
 import { View, ViewProps } from '../View';
 

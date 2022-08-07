@@ -1,5 +1,5 @@
 import { get, merge } from 'lodash';
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { useScreen } from '../hooks';
 import type { Responsive } from '../ScreenProvider/context';
 import { defaultTheme, ITheme, IThemeContext, ThemeContext } from '../ThemeProvider/context';
@@ -11,13 +11,12 @@ export type RNFunctionComponent<T> = React.FunctionComponent<
   } & Partial<Responsive<T>>
 >;
 
-function withConfig<P extends unknown>(
+const withConfig = <P extends {}>(
   WrappedComponent: React.ComponentType<P>
-): React.FunctionComponent<P> | React.ForwardRefExoticComponent<P> {
+): React.FunctionComponent<P> | React.ForwardRefExoticComponent<P> => {
   const name = WrappedComponent.displayName || WrappedComponent.name || 'Component';
-
   return Object.assign(
-    (props: any) => {
+    forwardRef((props: any, ref: any) => {
       const { select } = useScreen();
 
       return (
@@ -35,7 +34,7 @@ function withConfig<P extends unknown>(
                 responsive
               );
 
-              return <WrappedComponent {...newProps} />;
+              return <WrappedComponent {...newProps} ref={ref} />;
             }
 
             const { colors, mode, spacing, font, shadow, styles }: IThemeContext = context;
@@ -59,13 +58,13 @@ function withConfig<P extends unknown>(
               responsive
             );
 
-            return <WrappedComponent {...newProps} />;
+            return <WrappedComponent {...newProps} ref={ref} />;
           }}
         </ThemeContext.Consumer>
       );
-    },
+    }),
     { displayName: name }
   );
-}
+};
 
 export default withConfig;

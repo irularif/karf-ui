@@ -19,6 +19,7 @@ const _AppbarLeftAction: RNFunctionComponent<AppbarLeftActionProps> = ({
 const styles = StyleSheet.create({
   basic: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 
