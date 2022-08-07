@@ -11,7 +11,7 @@ import {
   TouchableNativeFeedbackProps,
   TouchableOpacity,
   TouchableOpacityProps,
-  ViewStyle
+  ViewStyle,
 } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import { renderNode } from '../helpers/node';
@@ -35,6 +35,7 @@ export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedb
   shadow?: boolean;
   modalId?: string;
   modalProps?: Omit<TModalProps, 'id'>;
+  containerProps?: Partial<ViewProps>;
 }
 
 const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
@@ -57,6 +58,7 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
   onPress,
   onPressIn,
   onPressOut,
+  containerProps,
   ...props
 }) => {
   const [isPressIn, setIsPressIn] = useState(false);
@@ -224,6 +226,7 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
 
   return (
     <View
+      {...containerProps}
       // @ts-ignore
       style={finalContainerStyle}
     >

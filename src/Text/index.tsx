@@ -12,13 +12,18 @@ import { defaultTheme } from '../ThemeProvider/context';
 
 type Headings = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
+export type TextMethod = {} & NativeText;
 export interface TextProps extends NativeTextProps {
   heading?: Headings;
   isAnimated?: boolean;
+  ref?: React.ForwardedRef<TextMethod>
 }
 
 const _Text: RNFunctionComponent<TextProps> = forwardRef(
-  ({ children, heading, style, theme = defaultTheme, isAnimated = false, ...props }, ref) => {
+  (
+    { children, heading, style, theme = defaultTheme, isAnimated = false, ...props },
+    ref: React.ForwardedRef<TextMethod>
+  ) => {
     const finalStyle = parseStyle(
       {
         color: theme.colors.black,
@@ -27,7 +32,7 @@ const _Text: RNFunctionComponent<TextProps> = forwardRef(
       theme.font,
       theme.style,
       !!heading && styles[heading],
-      style,
+      style
     );
 
     const Component = isAnimated ? Animated.Text : NativeText;

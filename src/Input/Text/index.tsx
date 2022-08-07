@@ -10,7 +10,6 @@ import React, {
 } from 'react';
 import {
   KeyboardTypeOptions,
-  Platform,
   StyleSheet,
   TextInput as NativeTextInput,
   TextInputProps as NativeTextInputProps,
@@ -32,7 +31,7 @@ export type TInputType =
 export type TextInputMethods = {
   getState: () => {
     value: string;
-    originalValue: string;
+    tempValue: string;
     valueType: string;
     type: TInputType;
     secure: boolean;
@@ -72,8 +71,8 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
   ) => {
     const innerRef = useRef<NativeTextInput>(null);
     const [state, setState] = useState({
+      tempValue: '',
       value: '',
-      originalValue: '',
       valueType: 'string',
       type: type,
       secure: type === 'password' ? true : false,
@@ -140,8 +139,8 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       innerRef.current?.setNativeProps({ text: _value });
       setState((prevState) => ({
         ...prevState,
-        value: _value,
-        originalValue: _originalValue,
+        tempValue: _value,
+        value: _originalValue,
       }));
       if (onChange) {
         onChange(Object.assign({}, e, { nativeEvent: { text: _originalValue } }));
@@ -188,7 +187,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       if (!!value) {
         setState({
           ...state,
-          value: parseValue(value),
+          tempValue: parseValue(value),
           valueType: typeof value,
           type,
         });
@@ -218,7 +217,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
           multiline={type === 'multiline'}
           numberOfLines={type === 'multiline' ? 4 : undefined}
           onChange={_onChange}
-          value={state.value}
+          value={state.tempValue}
           secureTextEntry={state.secure}
           style={finalStyle}
           ref={innerRef}
@@ -242,7 +241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     flex: 1,
     minHeight: 32,
-    minWidth: 100,
+    minWidth: 20,
   },
   buttonContainer: {
     margin: 0,

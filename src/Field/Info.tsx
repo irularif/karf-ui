@@ -22,6 +22,7 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
     fontSize: 12,
+    marginBottom: 4,
     marginHorizontal: 4,
   },
 });

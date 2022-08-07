@@ -48,10 +48,10 @@ export interface ModalProps extends ViewProps {
 const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
   (
     {
-      id: _id,
+      id: id,
       containerProps,
       contentContainerProps,
-      isOpen: _isOpen,
+      isOpen: isOpen,
       isBlocking,
       onDismiss,
       position = 'center',
@@ -64,14 +64,14 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
     },
     ref
   ) => {
-    const id = useRef(_id || uuid()).current;
+    const _id = useRef(id || uuid()).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const keyboardAnim = useRef(new Animated.Value(0)).current;
     const inset = useSafeAreaInsets();
     const [visible, setVisible] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const { isVisible: isVisibleKeyboard, height: keyboardHeight } = useKeyboard();
-    const { isOpen, setIsOpen } = useModal(id);
+    const { isOpen: _isOpen, setIsOpen } = useModal(_id);
     const { addUpdateState, deleteState } = useModalState();
 
     const open = useCallback(() => {
@@ -94,12 +94,12 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
         if (finished) {
           setVisible(false);
           onDismiss && onDismiss();
-          if (_id && isOpen) {
+          if (id && _isOpen) {
             setIsOpen(false);
           }
         }
       });
-    }, [fadeAnim, onDismiss, isOpen]);
+    }, [fadeAnim, onDismiss, _isOpen]);
 
     const _insetBottom = useMemo(() => {
       return isVisibleKeyboard ? false : insetBottom;
@@ -121,27 +121,27 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
     useImperativeHandle(ref, forwardRef, []);
 
     useEffect(() => {
-      if (_id) {
+      if (id) {
         addUpdateState({
-          id: _id,
+          id: id,
           isOpen: false,
         });
       }
 
       return () => {
-        if (_id) {
-          deleteState(_id);
+        if (id) {
+          deleteState(id);
         }
       };
     }, []);
 
     useEffect(() => {
-      if (isOpen || _isOpen) {
+      if (_isOpen || isOpen) {
         open();
-      } else {
+      } else if (!!isReady && (!_isOpen || !isOpen)) {
         close();
       }
-    }, [isOpen, _isOpen]);
+    }, [_isOpen, isOpen]);
 
     useEffect(() => {
       if (isVisibleKeyboard) {
@@ -261,7 +261,7 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
     }
 
     return (
-      <Portal hostName="@karf-ui" name={`@karf-ui-modal-${id}`}>
+      <Portal hostName="@karf-ui" name={`@karf-ui-modal-${_id}`}>
         {/* @ts-ignore */}
         <View {...props} isAnimated style={finalContainerStyle} pointerEvents="box-none">
           <Background
