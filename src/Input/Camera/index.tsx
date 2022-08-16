@@ -1,3 +1,4 @@
+import Color from 'color';
 import { cloneDeep, get } from 'lodash';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -8,6 +9,7 @@ import withConfig from '../../helpers/withConfig';
 import { Modal } from '../../Modal';
 import { Text } from '../../Text';
 import { View } from '../../View';
+import { Camera, CameraType } from 'expo-camera';
 
 export type CameraInputMethod = {
   getState: () => {
@@ -84,6 +86,11 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
         color: theme?.colors.black,
       },
     ]);
+    const finalTopToolbarStyle = StyleSheet.flatten([styles.toolbarTop]);
+    const finalBottomToolbarStyle = StyleSheet.flatten([styles.toolbarBottom]);
+    const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
+    const finalButtonSnapStyle = StyleSheet.flatten([styles.buttonSnap]);
+    const finalContainerButtonSnapStyle = StyleSheet.flatten([styles.containerButtonSnap]);
     return (
       <>
         <Button
@@ -94,21 +101,55 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
           onPress={toggleModal}
           containerProps={{ onLayout }}
         >
-          {!!children && children}
-          <>
-            <Button.LeftIcon name="camera" color={theme?.colors.grey500} size={36} />
-            <Button.Label style={finalLabelButtonStyle}>Press to open camera</Button.Label>
-          </>
+          {!!children ? (
+            children
+          ) : (
+            <>
+              <Button.LeftIcon name="camera" color={theme?.colors.grey500} size={36} />
+              <Button.Label style={finalLabelButtonStyle}>Press to open camera</Button.Label>
+            </>
+          )}
         </Button>
-        <Modal position="full" isOpen={state.visible}>
-          <Appbar insetTop>
-            <Text>Top Action</Text>
+        <Modal
+          position="full"
+          isOpen={state.visible}
+          contentContainerStyle={styles.modal}
+          statusBar={{
+            barStyle: 'light-content',
+          }}
+        >
+          <Appbar insetTop style={finalTopToolbarStyle} disableShadow backgroundColor="transparent">
+            <Button variant="text" style={finalToolbarButtonStyle} rounded>
+              <Button.Label>[1:1]</Button.Label>
+              <Button.Label>Ratio</Button.Label>
+            </Button>
+            <Button variant="text" style={finalToolbarButtonStyle} rounded>
+              <Button.LeftIcon name="flash" color="#fff" />
+              <Button.Label>Flash</Button.Label>
+            </Button>
+            <Button onPress={toggleModal} variant="text" style={finalToolbarButtonStyle} rounded>
+              <Button.LeftIcon name="close" color="#fff" />
+              <Button.Label>Cancel</Button.Label>
+            </Button>
           </Appbar>
-          <View style={styles.modal}>
-            <Text>lala</Text>
+          <View style={styles.modalContent}>
+            <Camera></Camera>
           </View>
-          <Appbar insetBottom>
-            <Text>Bottom Action</Text>
+          <Appbar
+            insetBottom
+            style={finalBottomToolbarStyle}
+            disableShadow
+            backgroundColor="transparent"
+          >
+            <Button variant="text" style={finalToolbarButtonStyle} rounded>
+              <Button.LeftIcon name="images" color="#fff" size={32} />
+            </Button>
+            <Button style={finalButtonSnapStyle} containerStyle={finalContainerButtonSnapStyle} rounded>
+              <Button.LeftIcon type="material" name="camera" color="#000" size={40} />
+            </Button>
+            <Button variant="text" style={finalToolbarButtonStyle} rounded>
+              <Button.LeftIcon name="camera-reverse" color="#fff" size={36} />
+            </Button>
           </Appbar>
         </Modal>
       </>
@@ -130,6 +171,9 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
   modal: {
+    backgroundColor: '#000',
+  },
+  modalContent: {
     padding: 16,
     flex: 1,
   },
@@ -144,6 +188,25 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     padding: 20,
+  },
+  toolbarTop: {
+    justifyContent: 'space-between',
+  },
+  toolbarBottom: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  toolbarButton: {
+    backgroundColor: '#fff',
+  },
+  buttonSnap: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#fff',
+    borderRadius: 999,
+  },
+  containerButtonSnap: {
+    marginHorizontal: 30,
   },
 });
 

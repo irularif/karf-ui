@@ -36,6 +36,7 @@ export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedb
   modalId?: string;
   modalProps?: Omit<TModalProps, 'id'>;
   containerProps?: Partial<ViewProps>;
+  rounded?: boolean;
 }
 
 const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
@@ -55,6 +56,7 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
   shadow = false,
   modalId,
   modalProps,
+  rounded = false,
   onPress,
   onPressIn,
   onPressOut,
@@ -173,6 +175,9 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
           backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
         },
       }[variant],
+    rounded && {
+      borderRadius: 9999,
+    },
   ]);
 
   const finalTitleStyle = StyleSheet.flatten([
@@ -193,6 +198,9 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
     shadow && {
       ...(disabled || loading ? {} : theme?.shadow),
       overflow: 'visible',
+    },
+    rounded && {
+      borderRadius: 9999,
     },
   ]);
 

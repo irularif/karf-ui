@@ -22,6 +22,7 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
   onLayout: _onLayout,
   ...props
 }) => {
+  const readyState = useState(false);
   const inputRef = useRef<TextInputMethods>();
 
   const labelNode = findNode(children, 'Field.Label');
@@ -232,6 +233,7 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
             finalLabelStyle={finalLabelStyle}
             variant={variant}
             fadeAnim={fadeAnim}
+            readyState={readyState}
           />
         )}
         {!!suffixNode && renderNode(suffixNode.type, true, suffixNode.props)}
@@ -243,8 +245,16 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
 };
 
 const RenderChild = memo((props: any) => {
-  const { child, inputLayoutState, startAnimation, closeAnimation, inputRef, finalLabelStyle } =
-    props;
+  const {
+    child,
+    inputLayoutState,
+    startAnimation,
+    closeAnimation,
+    inputRef,
+    finalLabelStyle,
+    readyState,
+  } = props;
+  const [isReady, setIsReady] = readyState;
   const [_, setInputLayout] = inputLayoutState;
   const newProps = {
     ...child.props,
@@ -253,6 +263,9 @@ const RenderChild = memo((props: any) => {
   const onLayout = useCallback(
     (e: any) => {
       setInputLayout(e.nativeEvent.layout);
+      if (!isReady) {
+        setIsReady(true);
+      }
       if (!!child.props?.onLayout) {
         child.props.onLayout(e);
       }
@@ -313,12 +326,12 @@ const RenderChild = memo((props: any) => {
   }
 
   useEffect(() => {
-    if (!!newProps.value) {
+    if (!!newProps.value && !!isReady) {
       startAnimation({
-        delay: 600,
+        delay: 300,
       });
     }
-  }, [newProps.value]);
+  }, [newProps.value, isReady]);
 
   return renderNode(child?.type, true, newProps);
 });

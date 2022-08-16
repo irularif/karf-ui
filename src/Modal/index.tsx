@@ -13,9 +13,11 @@ import {
   Animated,
   Dimensions,
   Platform,
+  StyleProp,
   StyleSheet,
   TouchableOpacity,
   ViewProps,
+  ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { v4 as uuid } from 'uuid';
@@ -23,6 +25,7 @@ import { getStyleValue, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { useKeyboard } from '../hooks';
 import { useModal, useModalState } from '../hooks/modal';
+import { Page, PageProps } from '../Page';
 import { View } from '../View';
 
 const { height } = Dimensions.get('window');
@@ -31,7 +34,7 @@ export type ModalMethods = {
   toggleModal: () => void;
 };
 
-export interface ModalProps extends ViewProps {
+export interface ModalProps extends PageProps {
   id?: string;
   isOpen?: boolean;
   isBlocking?: boolean;
@@ -43,6 +46,8 @@ export interface ModalProps extends ViewProps {
   insetTop?: boolean;
   insetBottom?: boolean;
   ref?: React.Ref<ModalMethods>;
+  containerStyle?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
 const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
@@ -58,6 +63,8 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
       insetTop = false,
       insetBottom = false,
       style,
+      contentContainerStyle,
+      containerStyle,
       theme,
       children,
       ...props
@@ -161,6 +168,7 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
 
     const finalContainerStyle = StyleSheet.flatten([
       style,
+      containerStyle,
       containerProps?.style,
       styles.container,
       stylesContent[position],
@@ -187,6 +195,7 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
       {
         backgroundColor: theme?.colors.white,
       },
+      contentContainerStyle,
       contentContainerProps?.style,
       {
         opacity: fadeAnim.interpolate({
@@ -263,7 +272,7 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
     return (
       <Portal hostName="@karf-ui" name={`@karf-ui-modal-${_id}`}>
         {/* @ts-ignore */}
-        <View {...props} isAnimated style={finalContainerStyle} pointerEvents="box-none">
+        <Page {...props} isAnimated style={finalContainerStyle} pointerEvents="box-none">
           <Background
             activeOpacity={1}
             style={finalContainerButtonStyle}
@@ -274,7 +283,7 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
           <View isAnimated style={finalContentContainerStyle}>
             {children}
           </View>
-        </View>
+        </Page>
       </Portal>
     );
   }
@@ -288,6 +297,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     display: 'flex',
+    backgroundColor: 'transparent',
   },
   containerButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

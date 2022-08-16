@@ -1,6 +1,5 @@
-import { get } from 'lodash';
 import { StyleSheet } from 'react-native';
-import type { RNFunctionComponent } from '../helpers';
+import { getStyleValue, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Icon, IconProps } from '../Icon';
 import { Button } from './';
@@ -19,6 +18,7 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
   color,
   theme,
   rounded = true,
+  variant = 'text',
   ...props
 }) => {
   const _finalStyle = StyleSheet.flatten([
@@ -33,10 +33,16 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
     props.style,
   ]);
 
-  const _color = color || get(_finalStyle, 'backgroundColor', theme?.colors.black);
+  const _color =
+    color ||
+    getStyleValue(
+      _finalStyle,
+      ['backgroundColor', 'color'],
+      variant === 'filled' ? theme?.colors.white : theme?.colors.primary
+    );
 
   return (
-    <Button variant="text" {...props} style={_finalStyle}>
+    <Button {...props} variant={variant} style={_finalStyle}>
       <Icon
         name={name}
         type={type}
