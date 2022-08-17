@@ -4,12 +4,12 @@ import { useScreen } from '../hooks';
 import type { Responsive } from '../ScreenProvider/context';
 import { defaultTheme, ITheme, IThemeContext, ThemeContext } from '../ThemeProvider/context';
 
-export type RNFunctionComponent<T> = React.FunctionComponent<
-  T & {
-    theme?: ITheme;
-    children?: React.ReactNode | undefined;
-  } & Partial<Responsive<T>>
->;
+export type ComponentProps<T> = T & {
+  theme?: ITheme;
+  children?: React.ReactNode | undefined;
+} & Partial<Responsive<T>>;
+
+export type RNFunctionComponent<T> = React.FunctionComponent<ComponentProps<T>>;
 
 const withConfig = <P extends {}>(
   WrappedComponent: React.ComponentType<P>

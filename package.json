@@ -17,7 +17,6 @@
     "access": "public"
   },
   "scripts": {
-    "postinstall": "bob build",
     "build": "bob build",
     "test": "eslint --ext ts,tsx ./src"
   },
@@ -26,14 +25,18 @@
     "@react-native-async-storage/async-storage": "^1.17.7",
     "@react-native-community/datetimepicker": "^6.3.1",
     "@react-navigation/native": "^6.0.11",
+    "@shopify/flash-list": "^1.2.1",
     "color": "^3.2.1",
     "date-fns": "^2.29.1",
     "expo-camera": "^12.2.0",
+    "expo-file-system": "^14.1.0",
     "expo-font": "^10.1.0",
+    "expo-linear-gradient": "^11.4.0",
     "expo-splash-screen": "^0.15.1",
     "hoist-non-react-statics": "^3.3.2",
     "lodash": "^4.17.21",
     "react-native-get-random-values": "^1.8.0",
+    "react-native-image-pan-zoom": "^2.1.12",
     "react-native-size-matters": "^0.4.0",
     "react-native-vector-icons": "^7.1.0",
     "uuid": "^8.3.2"
@@ -44,17 +47,12 @@
     "@types/color": "^3.0.3",
     "@types/hoist-non-react-statics": "^3.3.1",
     "@types/lodash": "^4.14.182",
-    "@types/react": "~17.0.21",
-    "@types/react-dom": "~17.0.11",
-    "@types/react-native": "~0.67.6",
+    "@types/react": "~18.0.0",
+    "@types/react-native": "~0.69.1",
     "@types/react-native-vector-icons": "^6.4.10",
     "@types/uuid": "^8.3.4",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "react-native": "0.68.2",
-    "react-native-builder-bob": "^0.18.1",
-    "react-native-safe-area-context": "^4.2.4",
-    "typescript": "^4.3.5"
+    "react-native-builder-bob": "^0.18.3",
+    "typescript": "^4.6.3"
   },
   "peerDependencies": {
     "react-native-safe-area-context": "^4.2.4"
@@ -75,11 +73,5 @@
         }
       ]
     ]
-  },
-  "resolutions": {
-    "@types/react": "^18.0.15",
-    "@types/react-dom": "^18.0.6",
-    "@types/react-native": "^0.69.3",
-    "react-native-safe-area-context": "^4.2.4"
   }
 }

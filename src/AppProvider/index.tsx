@@ -1,4 +1,5 @@
 import { PortalHost, PortalProvider } from '@gorhom/portal';
+import * as FileSystem from 'expo-file-system';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions } from 'react-native';
@@ -33,6 +34,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [app, setApp] = useState<TApp>({
     initialize: {
       fonts: false,
+      cache: false,
     },
     isReady: false,
     ...initialScreen,
@@ -96,7 +98,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     }
   }, []);
 
+  const ensureDirExists = useCallback(async () => {
+    const dirs = FileSystem.cacheDirectory + 'images/';
+    const dirInfo = await FileSystem.getInfoAsync(dirs);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(dirs, { intermediates: true });
+    }
+    updateInitialize('cache', true);
+  }, []);
+
   useEffect(() => {
+    ensureDirExists();
     const event = Dimensions.addEventListener('change', handleOrientation);
 
     return () => {

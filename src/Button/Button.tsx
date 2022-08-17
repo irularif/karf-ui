@@ -92,23 +92,31 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
     [loading, onPress, disabled, modalProps, handleModal]
   );
 
-  const handleOnPressIn = useCallback(
-    (evt: any) => {
-      setIsPressIn(true);
-      if (!!onPressIn) {
-        onPressIn(evt);
-      }
-    },
+  const handleOnPressIn = useMemo(
+    () =>
+      ['text', 'outlined'].indexOf(variant) > -1
+        ? (evt: any) => {
+            setIsPressIn(true);
+            if (!!onPressIn) {
+              onPressIn(evt);
+            }
+          }
+        : undefined,
     [isPressIn, onPressIn]
   );
 
-  const handleOnPressOut = useCallback(
-    (evt: any) => {
-      setIsPressIn(false);
-      if (!!onPressOut) {
-        onPressOut(evt);
-      }
-    },
+  const handleOnPressOut = useMemo(
+    () =>
+      ['text', 'outlined'].indexOf(variant) > -1
+        ? (evt: any) => {
+            setTimeout(() => {
+              setIsPressIn(false);
+            }, 200);
+            if (!!onPressOut) {
+              onPressOut(evt);
+            }
+          }
+        : undefined,
     [isPressIn, onPressOut]
   );
 
@@ -128,26 +136,29 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
     {
       backgroundColor: baseColor,
     },
-    variant === 'text' && {
-      color: get(mergeStyle, 'color', baseColor),
-      backgroundColor: Color(baseColor)
-        .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
-        .rgb()
-        .string(),
-    },
-    variant === 'tonal' && {
-      color: Color(get(mergeStyle, 'color', baseColor)).darken(0.2).rgb().string(),
-      backgroundColor: Color(baseColor).alpha(0.2).rgb().string(),
-    },
-    variant === 'outlined' && {
-      color: get(mergeStyle, 'color', baseColor),
-      backgroundColor: Color(baseColor)
-        .alpha(isPressIn ? 0.1 : 0)
-        .rgb()
-        .string(),
-      borderColor: get(mergeStyle, 'borderColor', baseColor),
-      borderWidth: 1,
-    },
+    {
+      text: {
+        color: get(mergeStyle, 'color', baseColor),
+        backgroundColor: Color(baseColor)
+          .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
+          .rgb()
+          .toString(),
+      },
+      outlined: {
+        color: get(mergeStyle, 'color', baseColor),
+        backgroundColor: Color(baseColor)
+          .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
+          .rgb()
+          .toString(),
+        borderColor: get(mergeStyle, 'borderColor', baseColor),
+        borderWidth: 1,
+      },
+      filled: {},
+      tonal: {
+        color: Color(get(mergeStyle, 'color', baseColor)).darken(0.2).rgb().toString(),
+        backgroundColor: Color(baseColor).alpha(0.2).rgb().toString(),
+      },
+    }[variant],
     loading &&
       {
         text: {},
@@ -241,7 +252,6 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
       <NativeTouchableComponent
         {...props}
         onPress={handleOnPress}
-        delayPressIn={0}
         activeOpacity={activeOpacity}
         accessibilityRole="button"
         accessibilityState={accessibilityState}

@@ -1,6 +1,6 @@
 import { get } from 'lodash';
 import React, { Children } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
 import { renderNode } from '../helpers/node';
@@ -12,6 +12,7 @@ export interface AppbarProps extends ViewProps {
   insetTop?: boolean;
   insetBottom?: boolean;
   backgroundColor?: string;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
@@ -22,6 +23,7 @@ const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
   insetTop = false,
   insetBottom = false,
   backgroundColor,
+  containerStyle,
   ...props
 }) => {
   const inset = useSafeAreaInsets();
@@ -39,6 +41,7 @@ const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
       paddingBottom:
         getStyleValue(style, ['paddingBottom', 'paddingVertical', 'padding'], 0) + inset.bottom,
     },
+    containerStyle,
   ]);
 
   return (

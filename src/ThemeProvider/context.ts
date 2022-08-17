@@ -25,7 +25,6 @@ export interface IStyles {
     ListProps<any>,
     | 'style'
     | 'indicatorStyle'
-    | 'columnWrapperStyle'
     | 'contentContainerStyle'
     | 'ListFooterComponentStyle'
     | 'ListHeaderComponentStyle'

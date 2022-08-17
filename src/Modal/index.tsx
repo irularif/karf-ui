@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import {
   Animated,
+  BackHandler,
   Dimensions,
   Platform,
   StyleProp,
@@ -38,7 +39,7 @@ export interface ModalProps extends PageProps {
   id?: string;
   isOpen?: boolean;
   isBlocking?: boolean;
-  onDismiss?: () => void;
+  onDismiss?: Function;
   containerProps?: Partial<ViewProps>;
   contentContainerProps?: Partial<ViewProps>;
   children?: React.ReactNode;
@@ -134,11 +135,19 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
           isOpen: false,
         });
       }
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (!isBlocking && !!isReady) {
+          close();
+          return true;
+        }
+        return false;
+      });
 
       return () => {
         if (id) {
           deleteState(id);
         }
+        backHandler.remove();
       };
     }, []);
 

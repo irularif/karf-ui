@@ -16,6 +16,7 @@ export * from './List';
 export * from './Tooltip';
 export * from './Field';
 export * from './Input';
+export * from './Image';
 
 export * from './helpers';
 export * from './hooks';

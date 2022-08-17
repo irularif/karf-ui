@@ -1,15 +1,49 @@
-import React from 'react';
-import { FlatList, FlatListProps } from 'react-native';
-import withConfig, { RNFunctionComponent } from '../helpers/withConfig';
+import { FlashList, FlashListProps } from '@shopify/flash-list';
+import React, { forwardRef } from 'react';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import withConfig, { ComponentProps } from '../helpers/withConfig';
 import { useScreen } from '../hooks';
+import { View } from '../View';
 
-export interface ListProps<T> extends FlatListProps<T> {}
+export interface ListProps<T> extends FlashListProps<T> {
+  containerStyle?: StyleProp<ViewStyle>;
+}
 
-const _List: RNFunctionComponent<ListProps<any>> = ({ theme, ...props }) => {
+const _List = <T extends unknown>(
+  {
+    theme,
+    data,
+    renderItem,
+    containerStyle,
+    style,
+    contentContainerStyle,
+    ...props
+  }: ComponentProps<ListProps<T>>,
+  _: any
+) => {
   const { size } = useScreen();
+  const finalContainerStyle = StyleSheet.flatten([styles.container, containerStyle]);
+  const finalStyle = StyleSheet.flatten([styles.list, style, contentContainerStyle]);
 
-  return <FlatList key={size} {...props} />;
+  return (
+    <View style={finalContainerStyle}>
+      <FlashList
+        key={size}
+        data={data}
+        renderItem={renderItem}
+        contentContainerStyle={finalStyle}
+        {...props}
+      />
+    </View>
+  );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  list: {},
+});
+
 _List.displayName = 'List';
-export const List = withConfig(_List);
+export const List = withConfig(forwardRef(_List));

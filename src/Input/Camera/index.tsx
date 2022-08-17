@@ -1,22 +1,29 @@
 import Color from 'color';
+import { Camera, CameraType, PermissionStatus } from 'expo-camera';
 import { cloneDeep, get } from 'lodash';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { Appbar } from '../../Appbar';
 import { Button, ButtonProps } from '../../Button';
 import type { RNFunctionComponent } from '../../helpers';
 import withConfig from '../../helpers/withConfig';
 import { Modal } from '../../Modal';
 import { Text } from '../../Text';
+import type { ITheme } from '../../ThemeProvider/context';
 import { View } from '../../View';
-import { Camera, CameraType } from 'expo-camera';
+
+const { width } = Dimensions.get('screen');
+
+type CameraState = {
+  tempValue: string;
+  value: string;
+  visible: boolean;
+  type: CameraType;
+  ratio: '1:1' | '4:3' | '16:9';
+};
 
 export type CameraInputMethod = {
-  getState: () => {
-    tempValue: Date;
-    value: string;
-    visible: boolean;
-  };
+  getState: () => Partial<CameraState>;
   focus: () => void;
 };
 export interface CameraInputProps extends ButtonProps {
@@ -25,11 +32,14 @@ export interface CameraInputProps extends ButtonProps {
 
 const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
   ({ children, value, style, theme, onLayout, onFocus, onBlur, ...props }, ref) => {
-    const [state, setState] = useState({
+    const cameraState = useState<CameraState>({
       tempValue: '',
       value: '-',
       visible: false,
+      type: CameraType.back,
+      ratio: '4:3',
     });
+    const [state, setState] = cameraState;
 
     const toggleModal = useCallback(
       (e: any) => {
@@ -86,11 +96,8 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
         color: theme?.colors.black,
       },
     ]);
-    const finalTopToolbarStyle = StyleSheet.flatten([styles.toolbarTop]);
-    const finalBottomToolbarStyle = StyleSheet.flatten([styles.toolbarBottom]);
-    const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
-    const finalButtonSnapStyle = StyleSheet.flatten([styles.buttonSnap]);
-    const finalContainerButtonSnapStyle = StyleSheet.flatten([styles.containerButtonSnap]);
+    const finalModalStyle = StyleSheet.flatten([styles.modal]);
+
     return (
       <>
         <Button
@@ -113,49 +120,131 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
         <Modal
           position="full"
           isOpen={state.visible}
-          contentContainerStyle={styles.modal}
+          contentContainerStyle={finalModalStyle}
           statusBar={{
             barStyle: 'light-content',
           }}
         >
-          <Appbar insetTop style={finalTopToolbarStyle} disableShadow backgroundColor="transparent">
-            <Button variant="text" style={finalToolbarButtonStyle} rounded>
-              <Button.Label>[1:1]</Button.Label>
-              <Button.Label>Ratio</Button.Label>
-            </Button>
-            <Button variant="text" style={finalToolbarButtonStyle} rounded>
-              <Button.LeftIcon name="flash" color="#fff" />
-              <Button.Label>Flash</Button.Label>
-            </Button>
-            <Button onPress={toggleModal} variant="text" style={finalToolbarButtonStyle} rounded>
-              <Button.LeftIcon name="close" color="#fff" />
-              <Button.Label>Cancel</Button.Label>
-            </Button>
-          </Appbar>
-          <View style={styles.modalContent}>
-            <Camera></Camera>
-          </View>
-          <Appbar
-            insetBottom
-            style={finalBottomToolbarStyle}
-            disableShadow
-            backgroundColor="transparent"
-          >
-            <Button variant="text" style={finalToolbarButtonStyle} rounded>
-              <Button.LeftIcon name="images" color="#fff" size={32} />
-            </Button>
-            <Button style={finalButtonSnapStyle} containerStyle={finalContainerButtonSnapStyle} rounded>
-              <Button.LeftIcon type="material" name="camera" color="#000" size={40} />
-            </Button>
-            <Button variant="text" style={finalToolbarButtonStyle} rounded>
-              <Button.LeftIcon name="camera-reverse" color="#fff" size={36} />
-            </Button>
-          </Appbar>
+          <RenderCamera cameraState={cameraState} toggleModal={toggleModal} theme={theme} />
         </Modal>
       </>
     );
   }
 );
+
+interface RenderCameraProps {
+  cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
+  toggleModal: (e: any) => void;
+  theme?: ITheme;
+}
+
+const RenderCamera = ({ cameraState, toggleModal, theme }: RenderCameraProps) => {
+  const [permissions, requestPermission] = Camera.useCameraPermissions();
+  const [state, setState] = cameraState;
+
+  const switchCameraType = useCallback(() => {
+    setState((state) => ({
+      ...state,
+      type: state.type === CameraType.back ? CameraType.front : CameraType.back,
+    }));
+  }, []);
+
+  const switchRatio = useCallback(() => {
+    setState((state) => ({
+      ...state,
+      ratio: {
+        '1:1': '4:3',
+        '4:3': '16:9',
+        '16:9': '1:1',
+      }[state.ratio] as CameraState['ratio'],
+    }));
+  }, [state]);
+
+  const request = useCallback(() => {
+    if (!permissions) {
+      requestPermission();
+    } else if (permissions.status !== PermissionStatus.GRANTED && permissions.canAskAgain) {
+      requestPermission();
+    }
+  }, [permissions]);
+
+  const finalTopToolbarStyle = StyleSheet.flatten([styles.toolbarTop]);
+  const finalBottomToolbarStyle = StyleSheet.flatten([styles.toolbarBottom]);
+  const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
+  const finalButtonSnapStyle = StyleSheet.flatten([styles.buttonSnap]);
+  const finalContainerButtonSnapStyle = StyleSheet.flatten([styles.containerButtonSnap]);
+  const ratio = state.ratio.split(':');
+  const finalCameraViewStyle = StyleSheet.flatten([
+    styles.cameraView,
+    {
+      width: width,
+      height: width * (Number(ratio[0]) / Number(ratio[1])),
+    },
+  ]);
+
+  if (!!permissions && permissions.status === PermissionStatus.GRANTED) {
+    return (
+      <>
+        <Appbar
+          insetTop
+          style={finalTopToolbarStyle}
+          disableShadow
+          backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
+          containerStyle={styles.toolbarTopContainer}
+        >
+          <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchRatio}>
+            <Button.Label>[{state.ratio}]</Button.Label>
+            <Button.Label>Ratio</Button.Label>
+          </Button>
+          <Button variant="text" style={finalToolbarButtonStyle} rounded>
+            <Button.LeftIcon name="flash" color={theme?.colors.white} />
+            <Button.Label>Flash</Button.Label>
+          </Button>
+          <Button onPress={toggleModal} variant="text" style={finalToolbarButtonStyle} rounded>
+            <Button.LeftIcon name="close" color={theme?.colors.white} />
+            <Button.Label>Cancel</Button.Label>
+          </Button>
+        </Appbar>
+        <View style={styles.modalContent}>
+          <Camera style={finalCameraViewStyle} type={state.type} ratio={state.ratio} />
+        </View>
+        <Appbar
+          insetBottom
+          style={finalBottomToolbarStyle}
+          disableShadow
+          backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
+          containerStyle={styles.toolbarBottomContainer}
+        >
+          <Button variant="text" style={finalToolbarButtonStyle} rounded>
+            <Button.LeftIcon name="images" color={theme?.colors.white} size={32} />
+          </Button>
+          <Button
+            style={finalButtonSnapStyle}
+            containerStyle={finalContainerButtonSnapStyle}
+            rounded
+          >
+            <Button.LeftIcon type="material" name="camera" color={theme?.colors.black} size={40} />
+          </Button>
+          <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchCameraType}>
+            <Button.LeftIcon name="camera-reverse" color={theme?.colors.white} size={36} />
+          </Button>
+        </Appbar>
+      </>
+    );
+  }
+
+  return (
+    <View style={styles.permission}>
+      <Text style={styles.text} heading="h4">
+        Camera
+      </Text>
+      <Text style={styles.text}>Enable access so you can start taking photos.</Text>
+      <Button variant="text" onPress={request}>
+        <Button.Label style={styles.labelButton}>Request Permission</Button.Label>
+      </Button>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   button: {
@@ -174,8 +263,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   modalContent: {
-    padding: 16,
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   wrapperButton: {
     flexDirection: 'row',
@@ -188,6 +278,18 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     padding: 20,
+  },
+  toolbarTopContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  toolbarBottomContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   toolbarTop: {
     justifyContent: 'space-between',
@@ -207,6 +309,21 @@ const styles = StyleSheet.create({
   },
   containerButtonSnap: {
     marginHorizontal: 30,
+  },
+  cameraView: {
+    backgroundColor: 'red',
+  },
+  permission: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    color: '#fff',
+    marginBottom: 8,
+  },
+  labelButton: {
+    textDecorationLine: 'underline',
   },
 });
 

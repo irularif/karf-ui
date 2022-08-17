@@ -2,7 +2,7 @@ import React from 'react';
 import type { ScaledSize } from 'react-native';
 import type { TDevice, TOrientation } from '../ScreenProvider/context';
 
-type TInitialState = 'fonts';
+type TInitialState = 'fonts' | 'cache';
 
 export type TApp = {
   initialize: Record<TInitialState, boolean>;

@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { get, merge } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { defaultSpacing } from '../helpers';
 import { darkColors, lightColors } from '../helpers/colors';
+import { getStorage, setStorage } from '../helpers/storage';
 import { IConfigTheme, ThemeContext, ThemeDispatchContext, ThemeMode } from './context';
 
 interface ThemeProviderProps {
@@ -36,7 +36,7 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
   });
 
   const getThemeFromStorage = useCallback(async () => {
-    const value = await AsyncStorage.getItem('theme');
+    const value = await getStorage('theme');
     if (value) {
       setTheme(JSON.parse(value));
     }
@@ -57,7 +57,7 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
       });
 
       setTheme(newTheme);
-      AsyncStorage.setItem('theme', JSON.stringify(newTheme));
+      setStorage('theme', JSON.stringify(newTheme));
     },
     [theme]
   );
@@ -69,7 +69,7 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
       });
 
       setTheme(newTheme);
-      AsyncStorage.setItem('theme', JSON.stringify(newTheme));
+      setStorage('theme', JSON.stringify(newTheme));
     },
     [theme]
   );
