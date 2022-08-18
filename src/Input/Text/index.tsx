@@ -28,6 +28,14 @@ export type TInputType =
   | 'email'
   | 'url';
 
+type TextState = {
+  tempValue: string;
+  value: string;
+  valueType: string;
+  type: TInputType;
+  secure: boolean;
+};
+
 export type TextInputMethods = {
   getState: () => {
     value: string;
@@ -39,7 +47,7 @@ export type TextInputMethods = {
   toggleSecure: Function;
 } & NativeTextInput;
 
-export interface TextInputProps extends Omit<NativeTextInputProps, 'onChangeText'> {
+export interface TextInputProps extends Omit<NativeTextInputProps, 'onChangeText' | 'onChange'> {
   type?: TInputType;
   masiking?: {
     [Symbol.replace](string: string, replaceValue: string): string;
@@ -49,6 +57,7 @@ export interface TextInputProps extends Omit<NativeTextInputProps, 'onChangeText
     thousand: string;
   }>;
   secureProps?: Partial<ButtonIconProps>;
+  onChange?: (e: TextState) => void;
   onChangeValue?: (value: string) => void;
 }
 
@@ -57,7 +66,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
     {
       children,
       style,
-      value,
+      value = '',
       type = 'text',
       masiking,
       sperator,
@@ -70,7 +79,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
     ref: React.ForwardedRef<TextInputMethods>
   ) => {
     const innerRef = useRef<NativeTextInput>(null);
-    const [state, setState] = useState({
+    const [state, setState] = useState<TextState>({
       tempValue: '',
       value: '',
       valueType: 'string',
@@ -132,23 +141,27 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       [type, sperator]
     );
 
-    const _onChange = useCallback((e: any) => {
-      let _value = deparseValue(e.nativeEvent.text);
-      let _originalValue = parseToOriginalValue(_value);
-      _value = parseValue(_value);
-      innerRef.current?.setNativeProps({ text: _value });
-      setState((prevState) => ({
-        ...prevState,
-        tempValue: _value,
-        value: _originalValue,
-      }));
-      if (onChange) {
-        onChange(Object.assign({}, e, { nativeEvent: { text: _originalValue } }));
-      }
-      if (onChangeValue) {
-        onChangeValue(_originalValue);
-      }
-    }, []);
+    const _onChange = useCallback(
+      (e: any) => {
+        let _value = deparseValue(e.nativeEvent.text);
+        let _originalValue = parseToOriginalValue(_value);
+        _value = parseValue(_value);
+        innerRef.current?.setNativeProps({ text: _value });
+        setState((prevState) => ({
+          ...prevState,
+          tempValue: _value,
+          value: _originalValue,
+        }));
+        if (onChange) {
+          // onChange(Object.assign({}, e, { nativeEvent: { text: _originalValue } }));
+          onChange(cloneDeep(state));
+        }
+        if (onChangeValue) {
+          onChangeValue(_originalValue);
+        }
+      },
+      [state]
+    );
 
     const keyboardType = useMemo((): KeyboardTypeOptions => {
       switch (type) {
@@ -184,7 +197,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
     );
 
     useEffect(() => {
-      if (!!value) {
+      if (value !== state.value) {
         setState({
           ...state,
           tempValue: parseValue(value),
@@ -192,7 +205,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
           type,
         });
       }
-    }, [value, type]);
+    }, [value, type, state.value]);
 
     const finalStyle = StyleSheet.flatten([
       styles.basic,

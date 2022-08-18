@@ -19,14 +19,15 @@ import { Modal } from '../../Modal';
 import { View } from '../../View';
 
 type TDate = 'date' | 'time' | 'datetime';
+type DateState = {
+  value: string;
+  tempValue: Date;
+  type: TDate;
+  mode: TDate;
+  visible: boolean;
+};
 export type DateInputMethods = {
-  getState: () => {
-    value: string;
-    tempValue: Date;
-    type: TDate;
-    mode: Omit<TDate, 'datetime'>;
-    visible: false;
-  };
+  getState: () => DateState;
 };
 export interface DateInputProps extends ButtonProps {
   placeholder?: string;
@@ -34,7 +35,7 @@ export interface DateInputProps extends ButtonProps {
   value?: string;
   valueFormat?: string;
   labelFormat?: string;
-  onChange?: (value: Date) => void;
+  onChange?: (e: DateState) => void;
   onChangeValue?: (value: string) => void;
   datePickerProps?: Partial<
     Omit<BaseProps, 'value' | 'mode' | 'display' | 'themeVariant' | 'onChange'>
@@ -45,7 +46,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
   (
     {
       type = 'date',
-      value,
+      value = '',
       placeholder,
       labelFormat,
       valueFormat,
@@ -56,11 +57,13 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
       onLayout,
       onFocus,
       onBlur,
+      onChange,
+      onChangeValue,
       ...props
     },
     ref
   ) => {
-    const [state, setState] = useState({
+    const [state, setState] = useState<DateState>({
       tempValue: new Date(),
       value: '',
       type: type,
@@ -116,6 +119,12 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
               mode: type === 'datetime' ? 'date' : type,
             }));
             toggleModal(event);
+            if (!!onChange) {
+              onChange(cloneDeep(state));
+            }
+            if (!!onChangeValue) {
+              onChangeValue(state.value);
+            }
           }
         } else {
           setState((state) => ({
@@ -142,6 +151,12 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
               mode: type === 'datetime' ? 'date' : type,
             }));
             toggleModal(dismiss);
+            if (!!onChange) {
+              onChange(cloneDeep(state));
+            }
+            if (!!onChangeValue) {
+              onChangeValue(state.value);
+            }
           }
         } else {
           setState((state) => ({
@@ -194,14 +209,14 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
     );
 
     useEffect(() => {
-      if (value) {
-        setState((state) => ({
-          ...state,
+      if (value !== state.value) {
+        setState((prev) => ({
+          ...prev,
           tempValue: parseISO(value),
           value: value,
         }));
       }
-    }, [value]);
+    }, [value, state.value]);
 
     const finalButtonStyle = StyleSheet.flatten([
       styles.button,

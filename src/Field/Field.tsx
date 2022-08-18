@@ -256,10 +256,6 @@ const RenderChild = memo((props: any) => {
   } = props;
   const [isReady, setIsReady] = readyState;
   const [_, setInputLayout] = inputLayoutState;
-  const newProps = {
-    ...child.props,
-  };
-
   const onLayout = useCallback(
     (e: any) => {
       setInputLayout(e.nativeEvent.layout);
@@ -310,10 +306,14 @@ const RenderChild = memo((props: any) => {
     [child.props]
   );
 
-  newProps.onLayout = onLayout;
-  newProps.onFocus = onFocus;
-  newProps.onBlur = onBlur;
-  newProps.ref = setRef;
+  const newProps = {
+    ...child.props,
+    onLayout,
+    onBlur,
+    onFocus,
+    ref: setRef,
+  };
+
   if (newProps.type === 'password') {
     newProps.secureProps = {
       style: StyleSheet.flatten([
