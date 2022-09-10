@@ -6,10 +6,11 @@ import { useScreen } from '../hooks';
 import { View } from '../View';
 
 export interface ListProps<T> extends FlashListProps<T> {
+  data: readonly T[];
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-const _List = <T extends unknown>(
+const _List = <T = undefined>(
   {
     theme,
     data,

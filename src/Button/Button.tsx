@@ -25,7 +25,6 @@ export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedb
   TouchableComponent?: typeof Component;
   disabled?: boolean;
   loading?: boolean;
-  title?: string;
   tooltip?: string;
   containerStyle?: StyleProp<ViewStyle>;
   Component?: typeof React.Component;
@@ -39,21 +38,35 @@ export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedb
   rounded?: boolean;
 }
 
+interface LoadingProps {
+  loadingProps?: Partial<ActivityIndicatorProps>;
+  loading?: boolean;
+  style?: ViewStyle | any;
+  theme?: any;
+}
+
+interface ChildProps {
+  loading?: boolean;
+  disabled?: boolean;
+  theme?: any;
+  children?: React.ReactNode;
+  style?: ViewStyle | any;
+}
+
 const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
   TouchableComponent,
   children,
   theme,
   style,
-  loading = false,
   disabled,
   containerStyle,
-  title,
   Component = View,
   componentProps,
   tooltip,
   variant = 'filled',
-  loadingProps,
   shadow = false,
+  loading = false,
+  loadingProps,
   modalId,
   modalProps,
   rounded = false,
@@ -191,18 +204,6 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
     },
   ]);
 
-  const finalTitleStyle = StyleSheet.flatten([
-    styles.title,
-    {
-      color: disabled
-        ? Color(theme?.colors.disabled).darken(0.1).rgb().string()
-        : get(finalStyle, 'color', theme?.colors.white),
-    },
-    loading && {
-      opacity: 0,
-    },
-  ]);
-
   const finalContainerStyle = StyleSheet.flatten([
     styles.container,
     containerStyle,
@@ -238,11 +239,6 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
     }
   }, [variant]);
 
-  const childs = Children.toArray(children);
-  if (!!title) {
-    childs.push(title);
-  }
-
   return (
     <View
       {...containerProps}
@@ -262,70 +258,111 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
       >
         {/* @ts-ignore */}
         <Component {...componentProps} style={finalStyle}>
-          {!!loading && (
-            <ActivityIndicator
-              {...loadingProps}
-              color={get(finalStyle, 'color', theme?.colors.white)}
-              style={styles.loading}
-            />
-          )}
-          {childs
-            .sort((elA, elB) => {
-              const nameA = get(elA, 'type.displayName', get(elA, 'type.name', ''));
-              const nameB = get(elB, 'type.displayName', get(elB, 'type.name', ''));
-              const idxA = nameA === 'Button.LeftIcon' ? 0 : nameA === 'Button.RightIcon' ? 2 : 1;
-              const idxB = nameB === 'Button.LeftIcon' ? 0 : nameB === 'Button.RightIcon' ? 2 : 1;
-              if (idxA < idxB) {
-                return -1;
-              }
-              if (idxA > idxB) {
-                return 1;
-              }
-              return 0;
-            })
-            .map((child, index) => {
-              const name = get(child, 'type.displayName', get(child, 'type.name', ''));
-              const isIcon = ['Button.LeftIcon', 'Button.RightIcon', 'Icon'].includes(name);
-              const isLabel = typeof child === 'string' || ['Button.Label', 'Text'].includes(name);
-              let props: any = {};
-              if (React.isValidElement(child)) {
-                props = child.props;
-              }
-              if (name === 'Button.Icon') {
-                console.warn(
-                  "Button.Icon must be independent and don't use it as a child. Use Button.LeftIcon or Button.RightIcon instead."
-                );
-              }
-
-              return (
-                <React.Fragment key={index.toString()}>
-                  {isLabel
-                    ? renderNode(Label, get(props, 'children', child), {
-                        ...props,
-                        theme,
-                        style: StyleSheet.flatten([finalTitleStyle, props?.style]),
-                      })
-                    : isIcon
-                    ? renderNode(
-                        // @ts-ignore
-                        child.type,
-                        true,
-                        {
-                          ...props,
-                          color: get(
-                            props,
-                            'color',
-                            get(finalTitleStyle, 'color', theme?.colors.white)
-                          ),
-                        }
-                      )
-                    : child}
-                </React.Fragment>
-              );
-            })}
+          <RenderLoading
+            loading={loading}
+            loadingProps={loadingProps}
+            style={finalStyle}
+            theme={theme}
+          />
+          <RenderChild
+            loading={loading}
+            disabled={disabled}
+            style={finalStyle}
+            theme={theme}
+            children={children}
+          />
         </Component>
       </NativeTouchableComponent>
     </View>
+  );
+};
+
+const RenderLoading = ({ loading = false, loadingProps, style, theme }: LoadingProps) => {
+  if (loading) {
+    return (
+      <ActivityIndicator
+        {...loadingProps}
+        color={get(style, 'color', theme?.colors.white)}
+        style={styles.loading}
+      />
+    );
+  }
+
+  return null;
+};
+
+const RenderChild = ({ loading = false, disabled = false, theme, children, style }: ChildProps) => {
+  const finalTitleStyle = StyleSheet.flatten([
+    styles.title,
+    {
+      color: disabled
+        ? Color(theme?.colors.disabled).darken(0.1).rgb().string()
+        : get(style, 'color', theme?.colors.white),
+    },
+    loading && {
+      opacity: 0,
+    },
+  ]);
+
+  const childs = Children.toArray(children);
+
+  return (
+    <>
+      {childs
+        .sort((elA, elB) => {
+          const nameA = get(elA, 'type.displayName', get(elA, 'type.name', ''));
+          const nameB = get(elB, 'type.displayName', get(elB, 'type.name', ''));
+          const idxA = nameA === 'Button.LeftIcon' ? 0 : nameA === 'Button.RightIcon' ? 2 : 1;
+          const idxB = nameB === 'Button.LeftIcon' ? 0 : nameB === 'Button.RightIcon' ? 2 : 1;
+          if (idxA < idxB) {
+            return -1;
+          }
+          if (idxA > idxB) {
+            return 1;
+          }
+          return 0;
+        })
+        .map((child, index) => {
+          const name = get(child, 'type.displayName', get(child, 'type.name', ''));
+          const isIcon = ['Button.LeftIcon', 'Button.RightIcon', 'Icon'].includes(name);
+          const isLabel = typeof child === 'string' || ['Button.Label', 'Text'].includes(name);
+          let props: any = {};
+          if (React.isValidElement(child)) {
+            props = child.props;
+          }
+          if (name === 'Button.Icon') {
+            console.warn(
+              "Button.Icon must be independent and don't use it as a child. Use Button.LeftIcon or Button.RightIcon instead."
+            );
+          }
+
+          return (
+            <React.Fragment key={index.toString()}>
+              {isLabel
+                ? renderNode(Label, get(props, 'children', child), {
+                    ...props,
+                    theme,
+                    style: StyleSheet.flatten([finalTitleStyle, props?.style]),
+                  })
+                : isIcon
+                ? renderNode(
+                    // @ts-ignore
+                    child.type,
+                    true,
+                    {
+                      ...props,
+                      color: get(
+                        props,
+                        'color',
+                        get(finalTitleStyle, 'color', theme?.colors.white)
+                      ),
+                    }
+                  )
+                : child}
+            </React.Fragment>
+          );
+        })}
+    </>
   );
 };
 

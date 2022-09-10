@@ -98,17 +98,14 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
         if (Array.isArray(source)) {
           headers = get(source, '0.headers', {});
           uri = get(source, '0.uri', '');
-          fileName = get(source, '0.uri', '')
-            .replace(/^.*[\\\/]/, '')
-            .replace(/[/\\?%*:|"<>]/g, '-');
-          localUri = dirs + fileName;
         } else if (!Array.isArray(source)) {
           headers = get(source, 'headers', {});
           uri = get(source, 'uri', '');
+        }
+        if (!uri) return;
+        if (uri.startsWith('http')) {
           fileName = uri.replace(/^.*[\\\/]/, '').replace(/[/\\?%*:|"<>]/g, '-');
           localUri = dirs + fileName;
-        }
-        if (uri.startsWith('http')) {
           const cache = await checkImageInCache(localUri);
           if (!!cache && !!cache?.exists) {
             const { width, height } = NativeImage.resolveAssetSource({ uri: localUri });
@@ -157,9 +154,6 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
           const { width, height } = NativeImage.resolveAssetSource({ uri });
           setState((prev) => ({ ...prev, source: { uri: uri }, width, height }));
         }
-      } else if (!!source) {
-        const { width, height } = NativeImage.resolveAssetSource(source);
-        setState((prev) => ({ ...prev, source: source, width, height }));
       }
     }, [state]);
 
@@ -182,8 +176,32 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
     }, [state.originalSource]);
 
     useEffect(() => {
-      if (!isEqual(source, state.originalSource)) {
-        setState((prev) => ({ ...prev, originalSource: source }));
+      if (!!source) {
+        if (typeof source === "object") {
+          setState((prev) => {
+            if (!isEqual(source, prev.originalSource)) {
+              return {
+                ...prev,
+                originalSource: source,
+              };
+            }
+            return prev;
+          });
+        } else {
+          setState((prev) => {
+            if (source !== state.originalSource) {
+              const { width, height } = NativeImage.resolveAssetSource(source);
+              return {
+                ...prev,
+                originalSource: source,
+                source: source,
+                width,
+                height,
+              };
+            }
+            return prev;
+          });
+        }
       }
 
       return () => {
