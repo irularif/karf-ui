@@ -6,6 +6,8 @@ import {
   Image as NativeImage,
   ImageProps as NativeImageProps,
   ImageSourcePropType,
+  ImageStyle,
+  StyleProp,
   StyleSheet,
 } from 'react-native';
 import { Appbar } from '../Appbar';
@@ -13,9 +15,11 @@ import { Button } from '../Button';
 import { renderNode, RNFunctionComponent } from '../helpers';
 import { getStorage, setStorage } from '../helpers/storage';
 import withConfig from '../helpers/withConfig';
+import useImage from '../hooks/image';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Shimmer } from '../Shimmer';
+import type { ITheme } from '../ThemeProvider/context';
 import { View } from '../View';
 import { ImageZoom } from './ImageZoom';
 
@@ -26,6 +30,18 @@ interface ImageState {
   visiblePreview: boolean;
   width: number;
   height: number;
+}
+
+interface ImagePreviewProps {
+  enablePreview?: boolean;
+  imageState: [ImageState, React.Dispatch<React.SetStateAction<ImageState>>];
+  style: StyleProp<ImageStyle>;
+  theme?: ITheme;
+}
+
+interface ImageRenderProps extends Partial<ImageProps> {
+  imageState: [ImageState, React.Dispatch<React.SetStateAction<ImageState>>];
+  theme?: ITheme;
 }
 
 export interface ImageProps extends NativeImageProps {
@@ -46,20 +62,7 @@ const checkImageInCache = async (uri: string) => {
 };
 
 const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
-  (
-    {
-      variant = 'default',
-      source,
-      style,
-      ErrorComponent,
-      theme,
-      enablePreview = false,
-      children,
-      ...props
-    },
-    _
-  ) => {
-    const downloadRef = useRef<FileSystem.DownloadResumable | undefined>();
+  ({ variant = 'default', source, style, theme, enablePreview = false, ...props }, _) => {
     const imageState = useState<ImageState>({
       originalSource: undefined,
       source: undefined,
@@ -69,24 +72,7 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
       height: 0,
     });
     const [state, setState] = imageState;
-    const { width } = Dimensions.get('window');
-
-    const getCacheData = useCallback(async () => {
-      const cacheStr = await getStorage('imageCache');
-      if (cacheStr) {
-        return JSON.parse(cacheStr);
-      }
-      return {};
-    }, []);
-
-    const _source = useMemo(() => {
-      if (typeof state.source === 'string') {
-        return { uri: state.source };
-      } else if (typeof state.source === 'number') {
-        return state.source;
-      }
-      return source;
-    }, [state, source]);
+    const { add } = useImage();
 
     const checkCache = useCallback(async () => {
       const source = cloneDeep(state.originalSource);
@@ -106,66 +92,31 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
         if (uri.startsWith('http')) {
           fileName = uri.replace(/^.*[\\\/]/, '').replace(/[/\\?%*:|"<>]/g, '-');
           localUri = dirs + fileName;
-          const cache = await checkImageInCache(localUri);
-          if (!!cache && !!cache?.exists) {
-            const { width, height } = NativeImage.resolveAssetSource({ uri: localUri });
-            setState((prev) => ({ ...prev, source: { uri: localUri }, width, height }));
-          } else {
-            const cacheData = await getCacheData();
-            let download = undefined;
-            const downloadSnapshot = cacheData[uri];
-            if (!!downloadSnapshot) {
-              download = new FileSystem.DownloadResumable(
-                downloadSnapshot.url,
-                downloadSnapshot.fileUri,
-                downloadSnapshot.options,
-                undefined,
-                downloadSnapshot.resumeData
-              );
-            } else {
-              download = FileSystem.createDownloadResumable(uri, localUri, {
-                cache: false,
-                headers,
-              });
+          add({
+            url: uri,
+            localUri,
+          }).then((res) => {
+            if (!!res) {
+              if (res.status === 'success') {
+                NativeImage.getSize(res.localUri, (width, height) => {
+                  setState((prev) => ({
+                    ...prev,
+                    source: {
+                      uri: res.localUri,
+                    },
+                    width,
+                    height,
+                  }));
+                });
+              }
             }
-            if (!!download) {
-              downloadRef.current = download;
-            }
-            download
-              .downloadAsync()
-              .then((res) => {
-                if (res?.uri) {
-                  const { width, height } = NativeImage.resolveAssetSource({ uri: localUri });
-                  setState((prev) => ({ ...prev, source: { uri: res.uri }, width, height }));
-                  if (!!downloadSnapshot) {
-                    delete cacheData[uri];
-                    setStorage('imageCache', JSON.stringify(cacheData));
-                  }
-                }
-              })
-              .catch(() => {
-                setState((prev) => ({ ...prev, isError: true }));
-              })
-              .finally(() => {
-                downloadRef.current = undefined;
-              });
-          }
+          });
         } else {
           const { width, height } = NativeImage.resolveAssetSource({ uri });
           setState((prev) => ({ ...prev, source: { uri: uri }, width, height }));
         }
       }
     }, [state]);
-
-    const pauseDownload = useCallback(async () => {
-      if (!!downloadRef.current) {
-        downloadRef.current.pauseAsync();
-        const data = downloadRef.current.savable();
-        const cacheData = await getCacheData();
-        cacheData[data.url] = data;
-        setStorage('imageCache', JSON.stringify(cacheData));
-      }
-    }, [downloadRef, getCacheData]);
 
     const togglePreview = useCallback(() => {
       setState((prev) => ({ ...prev, visiblePreview: !prev.visiblePreview }));
@@ -177,7 +128,7 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
 
     useEffect(() => {
       if (!!source) {
-        if (typeof source === "object") {
+        if (typeof source === 'object') {
           setState((prev) => {
             if (!isEqual(source, prev.originalSource)) {
               return {
@@ -203,10 +154,6 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
           });
         }
       }
-
-      return () => {
-        pauseDownload();
-      };
     }, [source, state.originalSource]);
 
     const finalStyle = StyleSheet.flatten([styles.image]);
@@ -229,12 +176,6 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
       },
       style,
     ]);
-    const finalModalStyle = StyleSheet.flatten([styles.modal]);
-    const finalCloseButtonStyle = StyleSheet.flatten([
-      {
-        backgroundColor: theme?.colors?.white,
-      },
-    ]);
 
     return (
       <>
@@ -244,56 +185,102 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
           style={finalButtonStyle}
           onPress={togglePreview}
         >
-          {state.isError ? (
-            !!ErrorComponent ? (
-              renderNode(ErrorComponent, true)
-            ) : (
-              <View style={styles.image}>
-                <Icon
-                  name="image-broken"
-                  type="material-community"
-                  size={45}
-                  color={theme?.colors.divider}
-                />
-              </View>
-            )
-          ) : !!state.source ? (
-            <NativeImage source={state.source} style={finalStyle} {...props} />
-          ) : !!children ? (
-            renderNode(children, true)
-          ) : (
-            <Shimmer style={styles.image} />
-          )}
+          <RenderImage {...props} theme={theme} style={finalStyle} imageState={imageState} />
         </Button>
-        <Modal
-          position="full"
-          contentContainerStyle={finalModalStyle}
-          statusBar={{
-            barStyle: 'light-content',
-          }}
-          isOpen={state.visiblePreview}
-        >
-          <ImageZoom imageWidth={width} imageHeight={(width * state.height) / state.width}>
-            <NativeImage source={_source} style={finalStyle} {...props} />
-          </ImageZoom>
-          <Appbar backgroundColor="#0000" containerStyle={styles.appbar} insetTop>
-            <Appbar.Title />
-            <Appbar.RightAction>
-              <Button.Icon
-                name="close"
-                size={24}
-                variant="tonal"
-                style={finalCloseButtonStyle}
-                onPress={togglePreview}
-                shadow
-              />
-            </Appbar.RightAction>
-          </Appbar>
-        </Modal>
+        <ImagePreview
+          theme={theme}
+          imageState={imageState}
+          style={finalStyle}
+          enablePreview={enablePreview}
+        />
       </>
     );
   }
 );
+
+const RenderImage = ({
+  theme,
+  ErrorComponent,
+  children,
+  imageState,
+  style,
+  ...props
+}: ImageRenderProps) => {
+  const [state] = imageState;
+
+  return (
+    <>
+      {state.isError ? (
+        !!ErrorComponent ? (
+          renderNode(ErrorComponent, true)
+        ) : (
+          <View style={styles.image}>
+            <Icon
+              name="image-broken"
+              type="material-community"
+              size={45}
+              color={theme?.colors.divider}
+            />
+          </View>
+        )
+      ) : !!state.source ? (
+        <NativeImage source={state.source} style={style} {...props} />
+      ) : !!children ? (
+        renderNode(children, true)
+      ) : (
+        <Shimmer style={styles.image} />
+      )}
+    </>
+  );
+};
+
+const ImagePreview = ({ theme, imageState, style, enablePreview }: ImagePreviewProps) => {
+  const [state, setState] = imageState;
+  const { width } = Dimensions.get('window');
+
+  const finalModalStyle = StyleSheet.flatten([styles.modal]);
+  const finalCloseButtonStyle = StyleSheet.flatten([
+    {
+      backgroundColor: theme?.colors?.white,
+    },
+  ]);
+
+  const togglePreview = useCallback(() => {
+    setState((prev) => ({ ...prev, visiblePreview: !prev.visiblePreview }));
+  }, []);
+
+  if (!!enablePreview && !!state.source) {
+    return (
+      <Modal
+        position="full"
+        contentContainerStyle={finalModalStyle}
+        statusBar={{
+          barStyle: 'light-content',
+        }}
+        isOpen={state.visiblePreview}
+      >
+        <ImageZoom imageWidth={width} imageHeight={(width * state.height) / state.width}>
+          <NativeImage source={state.source} style={style} />
+        </ImageZoom>
+        <Appbar backgroundColor="#0000" containerStyle={styles.appbar} insetTop>
+          <Appbar.Title />
+          <Appbar.RightAction>
+            <Button.Icon
+              name="close"
+              size={24}
+              variant="tonal"
+              style={finalCloseButtonStyle}
+              onPress={togglePreview}
+              shadow
+            />
+          </Appbar.RightAction>
+        </Appbar>
+      </Modal>
+    );
+  }
+
+  return null;
+};
 
 const styles = StyleSheet.create({
   image: {

@@ -6,6 +6,7 @@ import { Dimensions } from 'react-native';
 import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getSize } from '../helpers/responsive';
+import ImageProvider from '../Image/Provider';
 import { KeyboardProvider } from '../KeyboardView/Provider';
 import { ModalProvider } from '../Modal/Provider';
 import { ScreenProvider } from '../ScreenProvider';
@@ -123,15 +124,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({
           <ScreenProvider>
             <ThemeProvider themes={themes}>
               <KeyboardProvider>
-                <FontLoader fonts={fonts} />
-                <WrapperSplashScreenProps Component={SplashScreenComponent}>
-                  <PortalProvider>
-                    <ModalProvider>
-                      {children}
-                      <PortalHost name="@karf-ui" />
-                    </ModalProvider>
-                  </PortalProvider>
-                </WrapperSplashScreenProps>
+                <ImageProvider>
+                  <FontLoader fonts={fonts} />
+                  <WrapperSplashScreenProps Component={SplashScreenComponent}>
+                    <PortalProvider>
+                      <ModalProvider>
+                        {children}
+                        <PortalHost name="@karf-ui" />
+                      </ModalProvider>
+                    </PortalProvider>
+                  </WrapperSplashScreenProps>
+                </ImageProvider>
               </KeyboardProvider>
             </ThemeProvider>
           </ScreenProvider>

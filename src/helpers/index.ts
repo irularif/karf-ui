@@ -7,3 +7,4 @@ export * from './withConfig';
 export { registerIcon } from './icon';
 export * from './node';
 export * from './dateFns';
+export * from './waitUntil';

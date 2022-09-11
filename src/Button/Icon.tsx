@@ -13,7 +13,7 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
   name,
   type,
   solid,
-  size = 24,
+  size = 20,
   brand,
   color,
   theme,
@@ -21,25 +21,24 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
   variant = 'text',
   ...props
 }) => {
+  const _color =
+    getStyleValue(props.style, ['backgroundColor'], color) ||
+    (variant === 'filled' ? theme?.colors.white : theme?.colors.primary);
+
   const _finalStyle = StyleSheet.flatten([
     styles.basic,
-    {
-      width: size + 12,
-      height: size + 12,
-    },
     rounded && {
       borderRadius: 9999,
     },
     props.style,
+    {
+      width: size + getStyleValue(props.style, ['padding', 'paddingHorizontal'], 8) * 2,
+      height: size + getStyleValue(props.style, ['padding', 'paddingVertical'], 8) * 2,
+    },
+    _color && {
+      backgroundColor: variant === 'filled' ? theme?.colors.primary : _color,
+    },
   ]);
-
-  const _color =
-    color ||
-    getStyleValue(
-      _finalStyle,
-      ['backgroundColor', 'color'],
-      variant === 'filled' ? theme?.colors.white : theme?.colors.primary
-    );
 
   return (
     <Button {...props} variant={variant} style={_finalStyle}>

@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
   basic: {
     flex: 1,
     marginVertical: 8,
-    marginHorizontal: 12,
+    marginHorizontal: 8,
     fontWeight: '600',
     fontSize: 16,
   },

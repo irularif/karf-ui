@@ -1,7 +1,6 @@
 import Color from 'color';
 import { debounce, get } from 'lodash';
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ViewStyle } from 'react-native';
 import { Animated, Pressable, StyleSheet } from 'react-native';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
@@ -67,7 +66,6 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
     y: 0,
   });
   const [labelLayout] = labelLayoutState;
-
   const [inputLayout] = inputLayoutState;
 
   const startAnimation = useCallback((config: Partial<Animated.SpringAnimationConfig>) => {
@@ -193,7 +191,7 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
         }),
         top: fadeAnim.interpolate({
           inputRange: [0, 1],
-          outputRange: [inputLayout.y - labelLayout.height / 2, -(labelLayout.height / 2)],
+          outputRange: [0, -(labelLayout.height / 2)],
         }),
         width: fadeAnim.interpolate({
           inputRange: [0, 1],
@@ -201,7 +199,10 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
         }),
         height: fadeAnim.interpolate({
           inputRange: [0, 1],
-          outputRange: [inputLayout.height, labelLayout.height] as any,
+          outputRange: [
+            inputLayout.height + getStyleValue(finalContainerStyle, ['paddingTop']),
+            labelLayout.height,
+          ] as any,
         }),
       },
     }[variant],
@@ -219,7 +220,7 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
         shouldVariant="flat"
       />
       <View {...props} style={finalStyle}>
-        {!!prefixNode && renderNode(prefixNode.type, true, prefixNode.props)}
+        <RenderPrefixSuffix node={prefixNode} />
         {/* @ts-ignore */}
         <View isAnimated style={finalContainerLabelStyle}>
           <Pressable onPress={onLabelPress} style={finalButtonLabelStyle}>
@@ -238,12 +239,11 @@ const _FieldBase: RNFunctionComponent<FieldProps> = ({
           startAnimation={startAnimation}
           closeAnimation={closeAnimation}
           inputRef={inputRef}
-          finalLabelStyle={finalLabelStyle}
           variant={variant}
           fadeAnim={fadeAnim}
           readyState={readyState}
         />
-        <RenderSuffix node={suffixNode} />
+        <RenderPrefixSuffix node={suffixNode} />
       </View>
       <RenderNode node={errorNode} />
       <RenderNode node={infoNode} />
@@ -258,7 +258,7 @@ const RenderNode = ({ node }: RenderNodeProps) => {
   return null;
 };
 
-const RenderSuffix = ({ node }: RenderNodeProps) => {
+const RenderPrefixSuffix = ({ node }: RenderNodeProps) => {
   if (!!node) {
     return renderNode(node.type, true, node.props);
   }
@@ -286,43 +286,35 @@ const RenderLabel = ({
     updateLabelLayout(e.nativeEvent.layout);
   }, []);
 
-  // const newProps = useMemo(() => {
-  const nprops = get(node, 'props', {});
-  let _newProps = Object.assign({}, nprops, {
-    suppressHighlighting: true,
-    style: style,
-  });
+  const newProps = useMemo(() => {
+    const nprops = get(node, 'props', {});
+    let _newProps = Object.assign({}, nprops, {
+      suppressHighlighting: true,
+      style: style,
+    });
 
-  if (variant === 'flat') {
-    _newProps = Object.assign(_newProps, {
-      onPress,
-    });
-  } else if (variant === 'outlined') {
-    _newProps = Object.assign(_newProps, {
-      isAnimated: true,
-      onLayout: onLabelLayout,
-    });
-  }
-  //   return _newProps;
-  // }, [node, style]);
+    if (variant === 'flat') {
+      _newProps = Object.assign(_newProps, {
+        onPress,
+      });
+    } else if (variant === 'outlined') {
+      _newProps = Object.assign(_newProps, {
+        isAnimated: true,
+        onLayout: onLabelLayout,
+      });
+    }
+    return _newProps;
+  }, [node, style]);
 
   if (!!node && variant === shouldVariant) {
-    return renderNode(node.type, true, _newProps);
+    return renderNode(node.type, true, newProps);
   }
   return null;
 };
 
 const RenderChild = memo((props: any) => {
-  const {
-    child,
-    inputLayoutState,
-    startAnimation,
-    closeAnimation,
-    inputRef,
-    finalLabelStyle,
-    readyState,
-    variant,
-  } = props;
+  const { child, inputLayoutState, startAnimation, closeAnimation, inputRef, readyState, variant } =
+    props;
   const [isReady, setIsReady] = readyState;
   const [_, setInputLayout] = inputLayoutState;
   const onLayout = useCallback(
@@ -348,7 +340,7 @@ const RenderChild = memo((props: any) => {
         child.props.onBlur(e);
       }
     },
-    [child.props]
+    [child.props, inputRef]
   );
 
   const onFocus = useCallback(
@@ -361,7 +353,7 @@ const RenderChild = memo((props: any) => {
         child.props.onFocus(e);
       }
     },
-    [child.props]
+    [child.props, inputRef]
   );
 
   const setRef = useCallback(
@@ -375,24 +367,8 @@ const RenderChild = memo((props: any) => {
     [child.props]
   );
 
-  const secureProps = useMemo(() => {
-    let _secureProps = undefined;
-    if (child.props.type === 'password') {
-      _secureProps = {
-        style: StyleSheet.flatten([
-          child.props?.secureProps?.style,
-          {
-            backgroundColor: get(finalLabelStyle, 'color', undefined),
-          },
-        ]),
-      };
-    }
-    return _secureProps;
-  }, [child]);
-
   const newProps = {
     ...child.props,
-    secureProps,
     onLayout,
     onBlur,
     onFocus,
@@ -405,7 +381,7 @@ const RenderChild = memo((props: any) => {
         delay: 300,
       });
     }
-  }, [newProps.value, isReady]);
+  }, [newProps.value, isReady, variant]);
 
   if (!!child) {
     return renderNode(child?.type, true, newProps);

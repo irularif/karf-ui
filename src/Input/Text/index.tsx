@@ -17,6 +17,21 @@ import {
 import { ButtonIcon, ButtonIconProps } from '../../Button/Icon';
 import type { RNFunctionComponent } from '../../helpers';
 import withConfig from '../../helpers/withConfig';
+import type { ITheme } from '../../ThemeProvider/context';
+
+type TextState = {
+  tempValue: string;
+  value: string;
+  valueType: string;
+  type: TInputType;
+  secure: boolean;
+  isFocus: boolean;
+};
+
+interface InputMiscProps extends TextInputProps {
+  inputState: [TextState, React.Dispatch<React.SetStateAction<TextState>>];
+  theme?: ITheme;
+}
 
 export type TInputType =
   | 'text'
@@ -28,22 +43,8 @@ export type TInputType =
   | 'email'
   | 'url';
 
-type TextState = {
-  tempValue: string;
-  value: string;
-  valueType: string;
-  type: TInputType;
-  secure: boolean;
-};
-
 export type TextInputMethods = {
-  getState: () => {
-    value: string;
-    tempValue: string;
-    valueType: string;
-    type: TInputType;
-    secure: boolean;
-  };
+  getState: () => TextState;
   toggleSecure: Function;
 } & NativeTextInput;
 
@@ -57,6 +58,7 @@ export interface TextInputProps extends Omit<NativeTextInputProps, 'onChangeText
     thousand: string;
   }>;
   secureProps?: Partial<ButtonIconProps>;
+  clearButtonProps?: Partial<ButtonIconProps>;
   onChange?: (e: TextState) => void;
   onChangeValue?: (value: string) => void;
 }
@@ -72,20 +74,26 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       sperator,
       theme,
       secureProps,
-      onChange,
+      clearButtonMode,
+      placeholderTextColor = theme?.colors.grey400,
+      onChange: _onChange,
       onChangeValue,
+      onFocus: _onFocus,
+      onBlur: _onBlur,
       ...props
     },
     ref: React.ForwardedRef<TextInputMethods>
   ) => {
     const innerRef = useRef<NativeTextInput>(null);
-    const [state, setState] = useState<TextState>({
+    const inputState = useState<TextState>({
       tempValue: '',
       value: '',
       valueType: 'string',
       type: type,
       secure: type === 'password' ? true : false,
+      isFocus: false,
     });
+    const [state, setState] = inputState;
 
     const parseValue = useCallback(
       (value: string = '') => {
@@ -141,7 +149,7 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       [type, sperator]
     );
 
-    const _onChange = useCallback(
+    const onChange = useCallback(
       (e: any) => {
         let _value = deparseValue(e.nativeEvent.text);
         let _originalValue = parseToOriginalValue(_value);
@@ -152,15 +160,41 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
           tempValue: _value,
           value: _originalValue,
         }));
-        if (onChange) {
+        if (_onChange) {
           // onChange(Object.assign({}, e, { nativeEvent: { text: _originalValue } }));
-          onChange(cloneDeep(state));
+          _onChange(cloneDeep(state));
         }
         if (onChangeValue) {
           onChangeValue(_originalValue);
         }
       },
       [state]
+    );
+
+    const onFocus = useCallback(
+      (e: any) => {
+        setState((prev) => ({
+          ...prev,
+          isFocus: true,
+        }));
+        if (_onFocus) {
+          _onFocus(e);
+        }
+      },
+      [_onFocus]
+    );
+
+    const onBlur = useCallback(
+      (e: any) => {
+        setState((prev) => ({
+          ...prev,
+          isFocus: false,
+        }));
+        if (_onBlur) {
+          _onBlur(e);
+        }
+      },
+      [_onBlur]
     );
 
     const keyboardType = useMemo((): KeyboardTypeOptions => {
@@ -180,13 +214,6 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       }
     }, [type]);
 
-    const toggleSecure = useCallback(() => {
-      setState((prevState) => ({
-        ...prevState,
-        secure: !prevState.secure,
-      }));
-    }, []);
-
     useImperativeHandle(
       ref,
       () =>
@@ -198,14 +225,15 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
 
     useEffect(() => {
       if (value !== state.value) {
-        setState({
-          ...state,
+        setState((prev) => ({
+          ...prev,
           tempValue: parseValue(value),
           valueType: typeof value,
+          value,
           type,
-        });
+        }));
       }
-    }, [value, type, state.value]);
+    }, [value, type]);
 
     const finalStyle = StyleSheet.flatten([
       styles.basic,
@@ -217,10 +245,6 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
       },
       style,
     ]);
-    const finalContainerButtonStyle = StyleSheet.flatten([
-      styles.buttonContainer,
-      secureProps?.containerStyle,
-    ]);
 
     return (
       <>
@@ -229,25 +253,114 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
           {...props}
           multiline={type === 'multiline'}
           numberOfLines={type === 'multiline' ? 4 : undefined}
-          onChange={_onChange}
+          onChange={onChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
           value={state.tempValue}
           secureTextEntry={state.secure}
           style={finalStyle}
           ref={innerRef}
           keyboardType={keyboardType}
+          placeholderTextColor={placeholderTextColor}
         />
-        {type === 'password' && (
-          <ButtonIcon
-            name={state.secure ? 'eye-off' : 'eye'}
-            {...secureProps}
-            onPress={toggleSecure}
-            containerStyle={finalContainerButtonStyle}
-          />
-        )}
+        <RenderClearInput theme={theme} inputState={inputState} clearButtonMode={clearButtonMode} />
+        <RenderTogglePassword
+          type={type}
+          theme={theme}
+          inputState={inputState}
+          secureProps={secureProps}
+        />
       </>
     );
   }
 );
+
+const RenderTogglePassword = ({ type, inputState, secureProps, theme }: InputMiscProps) => {
+  const [state, setState] = inputState;
+
+  const toggleSecure = useCallback(() => {
+    setState((prevState) => ({
+      ...prevState,
+      secure: !prevState.secure,
+    }));
+  }, []);
+
+  const finalContainerButtonStyle = StyleSheet.flatten([
+    styles.buttonContainer,
+    secureProps?.containerStyle,
+  ]);
+  const finalStyleButtonStyle = StyleSheet.flatten([
+    styles.button,
+    secureProps?.style,
+  ]);
+
+
+  if (type == 'password') {
+    return (
+      <ButtonIcon
+        name={state.secure ? 'eye-off' : 'eye'}
+        color={theme?.colors.grey400}
+        {...secureProps}
+        onPress={toggleSecure}
+        containerStyle={finalContainerButtonStyle}
+        style={finalStyleButtonStyle}
+      />
+    );
+  }
+
+  return null;
+};
+const RenderClearInput = ({
+  inputState,
+  clearButtonMode,
+  theme,
+  clearButtonProps,
+}: InputMiscProps) => {
+  const [state, setState] = inputState;
+
+  const clearInput = useCallback(() => {
+    setState((prevState) => ({
+      ...prevState,
+      tempValue: '',
+    }));
+  }, []);
+
+  const finalContainerButtonStyle = StyleSheet.flatten([
+    styles.buttonContainer,
+    clearButtonProps?.containerStyle,
+  ]);
+  const finalStyleButtonStyle = StyleSheet.flatten([
+    styles.button,
+    clearButtonProps?.style,
+  ]);
+
+  const visible = useMemo(() => {
+    let _visible = false;
+    if (
+      clearButtonMode === 'always' ||
+      (clearButtonMode === 'while-editing' && state.isFocus) ||
+      (clearButtonMode === 'unless-editing' && !state.isFocus)
+    ) {
+      _visible = true;
+    }
+    return _visible;
+  }, [state]);
+
+  if (visible) {
+    return (
+      <ButtonIcon
+        name="close-circle"
+        color={theme?.colors.grey400}
+        {...clearButtonProps}
+        onPress={clearInput}
+        containerStyle={finalContainerButtonStyle}
+        style={finalStyleButtonStyle}
+      />
+    );
+  }
+
+  return null;
+};
 
 const styles = StyleSheet.create({
   basic: {
@@ -258,6 +371,9 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     margin: 0,
+  },
+  button: {
+    padding: 4,
   },
 });
 

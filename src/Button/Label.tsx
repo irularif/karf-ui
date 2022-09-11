@@ -3,10 +3,11 @@ import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Text, TextProps } from '../Text';
+import { defaultTheme } from '../ThemeProvider/context';
 
 export interface ButtonLabelProps extends TextProps {}
 
-const _Label: RNFunctionComponent<ButtonLabelProps> = ({ style, theme, ...props }) => {
+const _Label: RNFunctionComponent<ButtonLabelProps> = ({ style, theme = defaultTheme, ...props }) => {
   const finalStyle = StyleSheet.flatten([
     styles.label,
     {
