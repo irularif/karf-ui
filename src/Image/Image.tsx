@@ -95,6 +95,9 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
           add({
             url: uri,
             localUri,
+            options: {
+              headers,
+            },
           }).then((res) => {
             if (!!res) {
               if (res.status === 'success') {
