@@ -94,6 +94,7 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
             .then((res) => {
               if (res?.status === 'success') {
                 NativeImage.getSize(res.localUri, (width, height) => {
+                  console.log(res.localUri, width, height);
                   setState((prev) => ({
                     ...prev,
                     source: {
@@ -110,11 +111,13 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
                 }));
               }
             })
-            .catch(() => {
-              setState((prev) => ({
-                ...prev,
-                isError: true,
-              }));
+            .catch((e) => {
+              if (!e?.canceled) {
+                setState((prev) => ({
+                  ...prev,
+                  isError: true,
+                }));
+              }
             }) as CancellablePromise;
           return prom?.cancel;
         } else {
@@ -138,34 +141,29 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
     }, [state.originalSource]);
 
     useEffect(() => {
-      if (!!source) {
-        if (typeof source === 'object') {
-          setState((prev) => {
+      setState((prev) => {
+        if (!!source) {
+          if (typeof source === 'object') {
             if (!isEqual(source, prev.originalSource)) {
               return {
                 ...prev,
                 originalSource: source,
               };
             }
-            return prev;
-          });
-        } else {
-          setState((prev) => {
-            if (source !== state.originalSource) {
-              const { width, height } = NativeImage.resolveAssetSource(source);
-              return {
-                ...prev,
-                originalSource: source,
-                source: source,
-                width,
-                height,
-              };
-            }
-            return prev;
-          });
+          } else if (source !== prev.originalSource) {
+            const { width, height } = NativeImage.resolveAssetSource(source);
+            return {
+              ...prev,
+              originalSource: source,
+              source: source,
+              width,
+              height,
+            };
+          }
         }
-      }
-    }, [source, state.originalSource]);
+        return prev;
+      });
+    }, [source]);
 
     const finalStyle = StyleSheet.flatten([styles.image]);
     const finalContainerButtonStyle = StyleSheet.flatten([

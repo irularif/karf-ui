@@ -1,4 +1,5 @@
 export class CancellablePromise<T = unknown> extends Promise<T> {
+  private onCancel = () => {};
   constructor(
     executor: (resolve: (value: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void
   ) {
@@ -8,8 +9,12 @@ export class CancellablePromise<T = unknown> extends Promise<T> {
       _onCancel = rj;
     });
 
-    this.cancel = _onCancel;
+    this.onCancel = _onCancel;
   }
 
-  public cancel: () => void;
+  public cancel = () => {
+    this.onCancel.bind(null, {
+      canceled: true,
+    });
+  };
 }
