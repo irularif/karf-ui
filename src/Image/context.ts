@@ -1,6 +1,7 @@
 import type * as FileSystem from 'expo-file-system';
 import { cloneDeep } from 'lodash';
 import { createContext } from 'react';
+import type { CancellablePromise } from '../helpers';
 
 type TStatus = 'queue' | 'downloading' | 'error' | 'success';
 
@@ -15,6 +16,7 @@ export interface QueueImageCacheState extends ImageCacheState {
   progress?: number;
   downloadRef?: FileSystem.DownloadResumable;
   downloadSnapShot?: FileSystem.DownloadPauseState;
+  isCached?: boolean;
 }
 
 export enum ImageCacheAction {
@@ -112,9 +114,10 @@ export const reducer = (
 };
 
 interface QueueImageDispatch {
-  add: (data: QueueImageCacheState) => Promise<QueueImageCacheState | undefined>;
+  add: (data: ImageCacheState) => CancellablePromise<QueueImageCacheState>;
   getQueue: (url: string) => QueueImageCacheState | undefined;
   getStatusQueue: (url: string) => TStatus | undefined;
+  checkImageInCache: (url: string) => Promise<false | FileSystem.FileInfo>;
 }
 
 export const QueueImageContext = createContext<Array<QueueImageCacheState>>([]);

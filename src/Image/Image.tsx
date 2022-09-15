@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import { cloneDeep, get, isEqual } from 'lodash';
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useState } from 'react';
 import {
   Dimensions,
   Image as NativeImage,
@@ -12,8 +12,7 @@ import {
 } from 'react-native';
 import { Appbar } from '../Appbar';
 import { Button } from '../Button';
-import { renderNode, RNFunctionComponent } from '../helpers';
-import { getStorage, setStorage } from '../helpers/storage';
+import { CancellablePromise, renderNode, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import useImage from '../hooks/image';
 import { Icon } from '../Icon';
@@ -53,14 +52,6 @@ export interface ImageProps extends NativeImageProps {
 
 const dirs = FileSystem.cacheDirectory + 'images/';
 
-const checkImageInCache = async (uri: string) => {
-  try {
-    return await FileSystem.getInfoAsync(uri);
-  } catch (err) {
-    return false;
-  }
-};
-
 const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
   ({ variant = 'default', source, style, theme, enablePreview = false, ...props }, _) => {
     const imageState = useState<ImageState>({
@@ -74,7 +65,7 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
     const [state, setState] = imageState;
     const { add } = useImage();
 
-    const checkCache = useCallback(async () => {
+    const checkCache = useCallback(() => {
       const source = cloneDeep(state.originalSource);
       if (typeof source === 'object') {
         let fileName = '';
@@ -88,19 +79,20 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
           headers = get(source, 'headers', {});
           uri = get(source, 'uri', '');
         }
-        if (!uri) return;
+        if (!uri) return null;
         if (uri.startsWith('http')) {
           fileName = uri.replace(/^.*[\\\/]/, '').replace(/[/\\?%*:|"<>]/g, '-');
           localUri = dirs + fileName;
-          add({
+          const prom = add({
             url: uri,
             localUri,
             options: {
               headers,
             },
-          }).then((res) => {
-            if (!!res) {
-              if (res.status === 'success') {
+          });
+          prom
+            .then((res) => {
+              if (res?.status === 'success') {
                 NativeImage.getSize(res.localUri, (width, height) => {
                   setState((prev) => ({
                     ...prev,
@@ -111,14 +103,26 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
                     height,
                   }));
                 });
+              } else {
+                setState((prev) => ({
+                  ...prev,
+                  isError: true,
+                }));
               }
-            }
-          });
+            })
+            .catch(() => {
+              setState((prev) => ({
+                ...prev,
+                isError: true,
+              }));
+            }) as CancellablePromise;
+          return prom?.cancel;
         } else {
           const { width, height } = NativeImage.resolveAssetSource({ uri });
           setState((prev) => ({ ...prev, source: { uri: uri }, width, height }));
         }
       }
+      return null;
     }, [state]);
 
     const togglePreview = useCallback(() => {
@@ -126,7 +130,11 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
     }, []);
 
     useEffect(() => {
-      checkCache();
+      const cancel = checkCache();
+
+      return () => {
+        cancel?.();
+      };
     }, [state.originalSource]);
 
     useEffect(() => {

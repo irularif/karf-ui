@@ -8,3 +8,4 @@ export { registerIcon } from './icon';
 export * from './node';
 export * from './dateFns';
 export * from './waitUntil';
+export * from './cancellablePromise';

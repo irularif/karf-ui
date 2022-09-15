@@ -1,7 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
-import { cloneDeep } from 'lodash';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { getStorage, setStorage } from '../helpers/storage';
+import { cloneDeep, reject } from 'lodash';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { CancellablePromise } from '../helpers';
 import {
   ImageCacheAction,
   ImageCacheState,
@@ -9,7 +10,7 @@ import {
   QueueImageCacheState,
   QueueImageContext,
   QueueImageDispatchContext,
-  reducer
+  reducer,
 } from './context';
 
 const checkImageInCache = async (uri: string) => {
@@ -23,7 +24,8 @@ const checkImageInCache = async (uri: string) => {
 const ImageProvider = ({ children }: any) => {
   const maxDownloading = 10;
   const [queueList, dispatch] = useReducer(reducer, InitialQueueImage);
-  const [callback, setCallback] = useState<Record<string, Array<Function>>>({});
+  const callbackRef = useRef<Record<string, Array<Function>>>({});
+  const callbackList = callbackRef.current;
 
   const downloadingList = useMemo(
     () => queueList.filter((x) => x.status === 'downloading'),
@@ -35,80 +37,87 @@ const ImageProvider = ({ children }: any) => {
     [queueList]
   );
 
-  const downloadImage = useCallback(async (data: QueueImageCacheState) => {
-    const ndata = cloneDeep(data);
-    ndata.status = 'downloading';
-    dispatch({
-      action: ImageCacheAction.UPDATE_STATUS,
-      data: ndata,
-    });
-    const cache = await checkImageInCache(ndata.localUri);
-    if (!!cache && !!cache?.exists) {
-      const res = await fetch(data.url, {
-        method: 'HEAD',
-      });
-      const fileSize = res.headers.get('Content-Length');
-      if (!!fileSize && Number(fileSize) === cache.size) {
-        ndata.status = 'success';
-        dispatch({
-          action: ImageCacheAction.UPDATE_STATUS,
-          data: ndata,
-        });
-        return;
-      }
-    }
-    let download: FileSystem.DownloadResumable | undefined = undefined;
-    if (!!data.downloadSnapShot) {
-      const downloadSnapshot = data.downloadSnapShot;
-      download = new FileSystem.DownloadResumable(
-        downloadSnapshot.url,
-        downloadSnapshot.fileUri,
-        downloadSnapshot.options,
-        undefined,
-        downloadSnapshot.resumeData
-      );
-    } else {
-      download = FileSystem.createDownloadResumable(
-        encodeURI(data.url),
-        data.localUri,
-        Object.assign(
-          {
-            cache: false,
-          },
-          data.options
-        )
-      );
-    }
-    if (!!download) {
-      ndata.downloadRef = download;
+  const downloadImage = useCallback(
+    async (data: QueueImageCacheState) => {
+      const ndata = cloneDeep(data);
+      ndata.status = 'downloading';
       dispatch({
-        action: ImageCacheAction.UPDATE,
-        data: {
-          url: ndata.url,
-          status: ndata.status,
-          downloadRef: ndata.downloadRef,
-        },
+        action: ImageCacheAction.UPDATE_STATUS,
+        data: ndata,
       });
-    }
-    download
-      .downloadAsync()
-      .then((res) => {
-        if (!!res?.status && res?.status >= 200 && res?.status < 300) {
-          ndata.status = 'success';
-        } else {
-          ndata.status = 'error';
-        }
-      })
-      .catch((e) => {
-        ndata.status = 'error';
-      })
-      .finally(() => {
-        dispatch({
-          action: ImageCacheAction.UPDATE_STATUS,
-          data: ndata,
+      const cache = await checkImageInCache(ndata.localUri);
+      if (!!cache && !!cache?.exists) {
+        const res = await fetch(data.url, {
+          method: 'HEAD',
         });
-      });
-  }, []);
+        const fileSize = res.headers.get('Content-Length');
+        if (!!fileSize && Number(fileSize) === cache.size) {
+          ndata.status = 'success';
+          dispatch({
+            action: ImageCacheAction.UPDATE,
+            data: {
+              url: ndata.url,
+              status: 'success',
+              isCached: true,
+            },
+          });
+          return;
+        }
+      }
+      let download: FileSystem.DownloadResumable | undefined = undefined;
+      if (!!data.downloadSnapShot) {
+        const downloadSnapshot = data.downloadSnapShot;
+        download = new FileSystem.DownloadResumable(
+          downloadSnapshot.url,
+          downloadSnapshot.fileUri,
+          downloadSnapshot.options,
+          undefined,
+          downloadSnapshot.resumeData
+        );
+      } else {
+        download = FileSystem.createDownloadResumable(
+          encodeURI(data.url),
+          data.localUri,
+          Object.assign(
+            {
+              cache: false,
+            },
+            data.options
+          )
+        );
+      }
+      if (!!download) {
+        ndata.downloadRef = download;
+        dispatch({
+          action: ImageCacheAction.UPDATE,
+          data: {
+            url: ndata.url,
+            status: ndata.status,
+            downloadRef: ndata.downloadRef,
+          },
+        });
+      }
+      download
+        .downloadAsync()
+        .then((res) => {
+          if (!!res?.status && res?.status >= 200 && res?.status < 300) {
+            ndata.status = 'success';
+          } else {
+            ndata.status = 'error';
+          }
+        })
+        .catch((e) => {
+          ndata.status = 'error';
+        })
+        .finally(() => {
+          dispatch({
+            action: ImageCacheAction.UPDATE_STATUS,
+            data: ndata,
+          });
+        });
+    },
+    [dispatch]
+  );
 
   const runQueue = useCallback(() => {
     if (downloadingList.length === maxDownloading) return;
@@ -139,11 +148,11 @@ const ImageProvider = ({ children }: any) => {
         },
       });
     }
-    setStorage('images', JSON.stringify(list));
+    AsyncStorage.setItem('images', JSON.stringify(list));
   }, [downloadingList]);
 
   const getFromStorage = useCallback(async () => {
-    const downloadingListStr = await getStorage('images');
+    const downloadingListStr = await AsyncStorage.getItem('images');
     if (!!downloadingListStr) {
       const downloadingList = JSON.parse(downloadingListStr);
       for (let data of downloadingList) {
@@ -182,24 +191,31 @@ const ImageProvider = ({ children }: any) => {
     [getQueue]
   );
 
-  const add = useCallback((data: ImageCacheState): Promise<QueueImageCacheState | undefined> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        dispatch({
-          action: ImageCacheAction.ADD,
-          data,
-        });
-        setCallback((prev) => {
-          const ndata = cloneDeep(prev);
-          if (!ndata[data.url]) {
-            ndata[data.url] = [];
-          }
-          ndata[data.url].push((data: QueueImageCacheState) => resolve(data));
-          return ndata;
-        });
-      } catch (error) {
-        reject(error);
+  const add = useCallback((data: ImageCacheState): CancellablePromise<QueueImageCacheState> => {
+    return new CancellablePromise((resolve) => {
+      dispatch({
+        action: ImageCacheAction.ADD,
+        data,
+      });
+      const ndata = cloneDeep(callbackList);
+      if (!ndata[data.url]) {
+        ndata[data.url] = [];
       }
+      ndata[data.url].push(resolve);
+      callbackRef.current = ndata;
+      checkImageInCache(data.localUri)
+        .then((res) => {
+          if (!!res && !!res.exists) {
+            resolve({
+              localUri: data.localUri,
+              url: data.url,
+              status: 'success',
+            });
+          }
+        })
+        .catch(() => {
+          reject(null);
+        });
     });
   }, []);
 
@@ -208,22 +224,21 @@ const ImageProvider = ({ children }: any) => {
       add,
       getQueue,
       getStatusQueue,
+      checkImageInCache,
     };
   }, []);
 
   const runComplete = useCallback(() => {
-    Object.keys(callback).forEach((url) => {
+    Object.keys(callbackList).forEach((url) => {
       const image = getCompleteQueue(url);
-      if (!!image) {
-        callback[url].forEach((c) => c(image));
-        setCallback((prev) => {
-          const ndata = cloneDeep(prev);
-          delete ndata[url];
-          return ndata;
-        });
+      if (!!image && !image.isCached) {
+        callbackList[url].forEach((c) => c(image));
+        const ndata = cloneDeep(callbackList);
+        delete ndata[url];
+        callbackRef.current = ndata;
       }
     });
-  }, [completeList, callback]);
+  }, [completeList, callbackList]);
 
   useEffect(() => {
     getFromStorage();
