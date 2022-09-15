@@ -224,15 +224,18 @@ const _TextInput: RNFunctionComponent<TextInputProps> = forwardRef(
     );
 
     useEffect(() => {
-      if (value !== state.value) {
-        setState((prev) => ({
-          ...prev,
-          tempValue: parseValue(value),
-          valueType: typeof value,
-          value,
-          type,
-        }));
-      }
+      setState((prev) => {
+        if (value !== prev.value) {
+          return {
+            ...prev,
+            tempValue: parseValue(value),
+            valueType: typeof value,
+            value,
+            type,
+          };
+        }
+        return state;
+      });
     }, [value, type]);
 
     const finalStyle = StyleSheet.flatten([
@@ -289,11 +292,7 @@ const RenderTogglePassword = ({ type, inputState, secureProps, theme }: InputMis
     styles.buttonContainer,
     secureProps?.containerStyle,
   ]);
-  const finalStyleButtonStyle = StyleSheet.flatten([
-    styles.button,
-    secureProps?.style,
-  ]);
-
+  const finalStyleButtonStyle = StyleSheet.flatten([styles.button, secureProps?.style]);
 
   if (type == 'password') {
     return (
@@ -329,10 +328,7 @@ const RenderClearInput = ({
     styles.buttonContainer,
     clearButtonProps?.containerStyle,
   ]);
-  const finalStyleButtonStyle = StyleSheet.flatten([
-    styles.button,
-    clearButtonProps?.style,
-  ]);
+  const finalStyleButtonStyle = StyleSheet.flatten([styles.button, clearButtonProps?.style]);
 
   const visible = useMemo(() => {
     let _visible = false;

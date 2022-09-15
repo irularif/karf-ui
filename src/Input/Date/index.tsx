@@ -16,6 +16,7 @@ import { Button, ButtonProps } from '../../Button';
 import { format, parseISO, RNFunctionComponent } from '../../helpers';
 import withConfig from '../../helpers/withConfig';
 import { Modal } from '../../Modal';
+import type { ITheme } from '../../ThemeProvider/context';
 import { View } from '../../View';
 
 type TDate = 'date' | 'time' | 'datetime';
@@ -63,7 +64,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
     },
     ref
   ) => {
-    const [state, setState] = useState<DateState>({
+    const dateState = useState<DateState>({
       tempValue: new Date(),
       value: '',
       type: type,
@@ -71,21 +72,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
       visible: false,
     });
 
-    const parseValue = useCallback(
-      (value: Date) => {
-        if (type === 'datetime') {
-          if (valueFormat) {
-            return format(value, valueFormat);
-          }
-          return value.toJSON();
-        }
-        if (type === 'time') {
-          return value.toJSON();
-        }
-        return format(value, valueFormat || 'yyyy-MM-dd');
-      },
-      [valueFormat, type]
-    );
+    const [state, setState] = dateState;
 
     const toggleModal = useCallback(
       (e: any) => {
@@ -106,96 +93,6 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
       [state, onFocus, onBlur]
     );
 
-    const _handleAndroid = useCallback(
-      (event: DateTimePickerEvent, date?: Date) => {
-        if (event.type !== 'dismissed' && !!date) {
-          if (state.type === 'datetime' && state.mode === 'date') {
-            setState((state) => ({ ...state, tempValue: date, mode: 'time' }));
-          } else if (!!date) {
-            setState((state) => ({
-              ...state,
-              tempValue: date || state.tempValue,
-              value: parseValue(date),
-              mode: type === 'datetime' ? 'date' : type,
-            }));
-            toggleModal(event);
-            if (!!onChange) {
-              onChange(cloneDeep(state));
-            }
-            if (!!onChangeValue) {
-              onChangeValue(state.value);
-            }
-          }
-        } else {
-          setState((state) => ({
-            ...state,
-            tempValue: !!state.value ? parseISO(state.value) : new Date(),
-            mode: type === 'datetime' ? 'date' : type,
-          }));
-          if (state.visible) {
-            toggleModal(event);
-          }
-        }
-      },
-      [state, parseValue, toggleModal]
-    );
-    const _handleIOS = useCallback(
-      (dismiss: boolean = true) => {
-        if (!dismiss) {
-          if (state.type === 'datetime' && state.mode === 'date') {
-            setState((state) => ({ ...state, mode: 'time' }));
-          } else {
-            setState((state) => ({
-              ...state,
-              value: parseValue(state.tempValue),
-              mode: type === 'datetime' ? 'date' : type,
-            }));
-            toggleModal(dismiss);
-            if (!!onChange) {
-              onChange(cloneDeep(state));
-            }
-            if (!!onChangeValue) {
-              onChangeValue(state.value);
-            }
-          }
-        } else {
-          setState((state) => ({
-            ...state,
-            tempValue: !!state.value ? parseISO(state.value) : new Date(),
-            mode: type === 'datetime' ? 'date' : type,
-          }));
-          if (state.visible) {
-            toggleModal(dismiss);
-          }
-        }
-      },
-      [state, parseValue, toggleModal]
-    );
-    const _onChange = useCallback(
-      (event: DateTimePickerEvent, date?: Date) => {
-        if (Platform.OS === 'android') {
-          _handleAndroid(event, date);
-        } else if (Platform.OS === 'ios') {
-          setState((state) => ({
-            ...state,
-            tempValue: date || state.tempValue,
-          }));
-        }
-      },
-      [_handleAndroid, _handleIOS]
-    );
-
-    const label = useMemo(() => {
-      let _labelFormat = labelFormat || type === 'time' ? 'HH:mm' : 'EEEE MMM d, yyyy';
-      if (!state.value) {
-        return placeholder;
-      }
-      if (type === 'datetime') {
-        _labelFormat = `${_labelFormat} HH:mm`;
-      }
-      return format(state.tempValue, _labelFormat);
-    }, [state, type, value, labelFormat, placeholder]);
-
     useImperativeHandle(
       ref,
       () =>
@@ -209,14 +106,28 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
     );
 
     useEffect(() => {
-      if (value !== state.value) {
-        setState((prev) => ({
-          ...prev,
-          tempValue: parseISO(value),
-          value: value,
-        }));
+      setState((prev) => {
+        if (value !== prev.value) {
+          return {
+            ...prev,
+            tempValue: !!value ? parseISO(value) : new Date(),
+            value: value,
+          };
+        }
+        return state;
+      });
+    }, [value]);
+
+    const label = useMemo(() => {
+      let _labelFormat = labelFormat || type === 'time' ? 'HH:mm' : 'EEEE MMM d, yyyy';
+      if (!state.value) {
+        return placeholder;
       }
-    }, [value, state.value]);
+      if (type === 'datetime') {
+        _labelFormat = `${_labelFormat} HH:mm`;
+      }
+      return format(state.tempValue, _labelFormat);
+    }, [state, type, value, labelFormat, placeholder]);
 
     const finalButtonStyle = StyleSheet.flatten([
       styles.button,
@@ -226,12 +137,6 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
       style,
     ]);
     const finalContainerButtonStyle = StyleSheet.flatten([styles.containerButton]);
-    const finalLabelButtonStyle = StyleSheet.flatten([
-      styles.label,
-      {
-        color: theme?.colors.black,
-      },
-    ]);
 
     return (
       <>
@@ -243,57 +148,206 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
           onPress={toggleModal}
           containerProps={{ onLayout }}
         >
-          {!!children ? (
-            children
-          ) : (
-            <>
-              <Button.Label style={finalLabelButtonStyle}>{label}</Button.Label>
-              <Button.RightIcon
-                name={type === 'time' ? 'time' : 'calendar'}
-                color={theme?.colors.grey500}
-              />
-            </>
-          )}
+          <RenderButtonPreview label={label} type={type} theme={theme} children={children} />
         </Button>
-        {state.visible && Platform.OS === 'android' ? (
+        <RenderPicker
+          dateState={dateState}
+          toggleModal={toggleModal}
+          type={type}
+          value={value}
+          valueFormat={valueFormat}
+          labelFormat={labelFormat}
+          onChange={onChange}
+          onChangeValue={onChangeValue}
+          datePickerProps={datePickerProps}
+        />
+      </>
+    );
+  }
+);
+
+interface IRenderButtonPreview {
+  type: TDate;
+  theme?: ITheme;
+  children: React.ReactNode;
+  label?: string;
+}
+
+const RenderButtonPreview = ({ label, children, theme, type }: IRenderButtonPreview) => {
+  const style = StyleSheet.flatten([
+    styles.label,
+    {
+      color: theme?.colors.black,
+    },
+  ]);
+
+  return (
+    <>
+      {!!children ? (
+        children
+      ) : (
+        <>
+          <Button.Label style={style}>{label}</Button.Label>
+          <Button.RightIcon
+            name={type === 'time' ? 'time' : 'calendar'}
+            color={theme?.colors.grey500}
+          />
+        </>
+      )}
+    </>
+  );
+};
+
+interface IRenderPicker extends DateInputProps {
+  dateState: [DateState, React.Dispatch<React.SetStateAction<DateState>>];
+  toggleModal: (e: any) => void;
+  theme?: ITheme;
+  type: TDate;
+}
+
+const RenderPicker = ({
+  dateState,
+  toggleModal,
+  onChange,
+  onChangeValue,
+  datePickerProps,
+  theme,
+  type,
+  valueFormat,
+}: IRenderPicker) => {
+  const [state, setState] = dateState;
+
+  const parseValue = useCallback(
+    (value: Date) => {
+      if (type === 'datetime') {
+        if (valueFormat) {
+          return format(value, valueFormat);
+        }
+        return value.toJSON();
+      }
+      if (type === 'time') {
+        return value.toJSON();
+      }
+      return format(value, valueFormat || 'yyyy-MM-dd');
+    },
+    [valueFormat, type]
+  );
+
+  const _handleAndroid = useCallback(
+    (event: DateTimePickerEvent, date?: Date) => {
+      if (event.type !== 'dismissed' && !!date) {
+        if (state.type === 'datetime' && state.mode === 'date') {
+          setState((state) => ({ ...state, tempValue: date, mode: 'time' }));
+        } else if (!!date) {
+          setState((state) => ({
+            ...state,
+            tempValue: date || state.tempValue,
+            value: parseValue(date),
+            mode: type === 'datetime' ? 'date' : type,
+          }));
+          toggleModal(event);
+          if (!!onChange) {
+            onChange(cloneDeep(state));
+          }
+          if (!!onChangeValue) {
+            onChangeValue(state.value);
+          }
+        }
+      } else {
+        setState((state) => ({
+          ...state,
+          tempValue: !!state.value ? parseISO(state.value) : new Date(),
+          mode: type === 'datetime' ? 'date' : type,
+        }));
+        if (state.visible) {
+          toggleModal(event);
+        }
+      }
+    },
+    [state, parseValue, toggleModal]
+  );
+  const _handleIOS = useCallback(
+    (dismiss: boolean = true) => {
+      if (!dismiss) {
+        if (state.type === 'datetime' && state.mode === 'date') {
+          setState((state) => ({ ...state, mode: 'time' }));
+        } else {
+          setState((state) => ({
+            ...state,
+            value: parseValue(state.tempValue),
+            mode: type === 'datetime' ? 'date' : type,
+          }));
+          toggleModal(dismiss);
+          if (!!onChange) {
+            onChange(cloneDeep(state));
+          }
+          if (!!onChangeValue) {
+            onChangeValue(state.value);
+          }
+        }
+      } else {
+        setState((state) => ({
+          ...state,
+          tempValue: !!state.value ? parseISO(state.value) : new Date(),
+          mode: type === 'datetime' ? 'date' : type,
+        }));
+        if (state.visible) {
+          toggleModal(dismiss);
+        }
+      }
+    },
+    [state, parseValue, toggleModal]
+  );
+  const _onChange = useCallback(
+    (event: DateTimePickerEvent, date?: Date) => {
+      if (Platform.OS === 'android') {
+        _handleAndroid(event, date);
+      } else if (Platform.OS === 'ios') {
+        setState((state) => ({
+          ...state,
+          tempValue: date || state.tempValue,
+        }));
+      }
+    },
+    [_handleAndroid, _handleIOS]
+  );
+
+  if (Platform.OS === 'android' && state.visible) {
+    return (
+      <RNDateTimePicker
+        {...datePickerProps}
+        onChange={_onChange}
+        mode={state.mode}
+        value={state.tempValue}
+        themeVariant={theme?.mode}
+      />
+    );
+  } else if (Platform.OS === 'ios') {
+    return (
+      <Modal position="bottom" insetBottom isOpen={state.visible} onDismiss={() => _handleIOS()}>
+        <View style={styles.modal}>
           <RNDateTimePicker
             {...datePickerProps}
             onChange={_onChange}
             mode={state.mode}
             value={state.tempValue}
             themeVariant={theme?.mode}
+            display="spinner"
           />
-        ) : Platform.OS === 'ios' ? (
-          <Modal
-            position="bottom"
-            insetBottom
-            isOpen={state.visible}
-            onDismiss={() => _handleIOS()}
-          >
-            <View style={styles.modal}>
-              <RNDateTimePicker
-                {...datePickerProps}
-                onChange={_onChange}
-                mode={state.mode}
-                value={state.tempValue}
-                themeVariant={theme?.mode}
-                display="spinner"
-              />
-              <View style={styles.wrapperButton}>
-                <Button variant="text" onPress={() => _handleIOS()}>
-                  <Button.Label>CANCEL</Button.Label>
-                </Button>
-                <Button variant="text" onPress={() => _handleIOS(false)}>
-                  <Button.Label>OK</Button.Label>
-                </Button>
-              </View>
-            </View>
-          </Modal>
-        ) : null}
-      </>
+          <View style={styles.wrapperButton}>
+            <Button variant="text" onPress={() => _handleIOS()}>
+              <Button.Label>CANCEL</Button.Label>
+            </Button>
+            <Button variant="text" onPress={() => _handleIOS(false)}>
+              <Button.Label>OK</Button.Label>
+            </Button>
+          </View>
+        </View>
+      </Modal>
     );
   }
-);
+  return null;
+};
 
 const styles = StyleSheet.create({
   button: {

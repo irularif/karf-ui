@@ -17,7 +17,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, ImageStyle, StyleProp, StyleSheet, TextStyle } from 'react-native';
 import { Appbar } from '../../Appbar';
 import { Button, ButtonProps } from '../../Button';
 import type { RNFunctionComponent } from '../../helpers';
@@ -95,10 +95,8 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
       ratio: ratio,
       flashMode: flashMode as CameraState['flashMode'],
     });
-    const permissionsState = Camera.useCameraPermissions();
 
     const [state, setState] = cameraState;
-    const cameraRef = useRef<Camera>(null);
 
     const toggleModal = useCallback(
       (e: any) => {
@@ -132,19 +130,30 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
     );
 
     useEffect(() => {
-      if (value !== state.value) {
-        if (value.startsWith('http') || value.startsWith('file')) {
-          const { width, height } = Image.resolveAssetSource({ uri: value });
-          setState((state) => ({
+      setState((state) => {
+        if (value !== state.value) {
+          if (value.startsWith('http') || value.startsWith('file')) {
+            const { width, height } = Image.resolveAssetSource({ uri: value });
+            return {
+              ...state,
+              width: width,
+              height: height,
+              tempValue: value,
+              value: value,
+            };
+          }
+        } else if (!value) {
+          return {
             ...state,
-            width: width,
-            height: height,
-            tempValue: value,
-            value: value,
-          }));
+            width: 0,
+            height: 0,
+            tempValue: '',
+            value: '',
+          };
         }
-      }
-    }, [value, state.value]);
+        return state;
+      });
+    }, [value]);
 
     const finalButtonStyle = StyleSheet.flatten([
       styles.button,
@@ -177,16 +186,14 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
           onPress={toggleModal}
           containerProps={{ onLayout }}
         >
-          {!!state.value && !disablePreview ? (
-            <Image source={{ uri: state.value }} style={finalImageStyle} />
-          ) : !!children ? (
-            children
-          ) : (
-            <>
-              <Button.LeftIcon name="camera" color={theme?.colors.grey500} size={36} />
-              <Button.Label style={finalLabelButtonStyle}>Press to open camera</Button.Label>
-            </>
-          )}
+          <RenderButtonPreview
+            cameraState={cameraState}
+            style={finalImageStyle}
+            theme={theme}
+            disablePreview={disablePreview}
+            finalLabelButtonStyle={finalLabelButtonStyle}
+            children={children}
+          />
         </Button>
         <Modal
           position="full"
@@ -196,30 +203,101 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
             barStyle: 'light-content',
           }}
         >
-          {!!state.tempValue ? (
-            <RenderPreview
-              cameraState={cameraState}
-              toggleModal={toggleModal}
-              theme={theme}
-              onChange={onChange}
-              onChangeValue={onChangeValue}
-            />
-          ) : (
-            <RenderCamera
-              cameraState={cameraState}
-              toggleModal={toggleModal}
-              theme={theme}
-              cameraRef={cameraRef}
-              cameraProps={_cameraProps}
-              cameraOptions={cameraOptions}
-              permissionsState={permissionsState}
-            />
-          )}
+          <RenderView
+            cameraState={cameraState}
+            theme={theme}
+            toggleModal={toggleModal}
+            cameraOptions={cameraOptions}
+            onChange={onChange}
+            onChangeValue={onChangeValue}
+            cameraProps={_cameraProps}
+          />
         </Modal>
       </>
     );
   }
 );
+
+interface IRenderView {
+  cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
+  toggleModal: (e: any) => void;
+  theme?: ITheme;
+  cameraOptions: Partial<CameraPictureOptions>;
+  onChange: ((e: CameraState) => void) | undefined;
+  onChangeValue: ((value: string) => void) | undefined;
+  cameraProps: CameraProps | undefined;
+}
+
+const RenderView = ({
+  cameraState,
+  toggleModal,
+  theme,
+  onChange,
+  onChangeValue,
+  cameraOptions,
+  cameraProps,
+}: IRenderView) => {
+  const [state] = cameraState;
+  const permissionsState = Camera.useCameraPermissions();
+  const cameraRef = useRef<Camera>(null);
+
+  if (state.tempValue) {
+    return (
+      <RenderPreview
+        cameraState={cameraState}
+        toggleModal={toggleModal}
+        theme={theme}
+        onChange={onChange}
+        onChangeValue={onChangeValue}
+      />
+    );
+  }
+  return (
+    <RenderCamera
+      cameraState={cameraState}
+      toggleModal={toggleModal}
+      theme={theme}
+      cameraRef={cameraRef}
+      cameraProps={cameraProps}
+      cameraOptions={cameraOptions}
+      permissionsState={permissionsState}
+    />
+  );
+};
+
+interface IRenderButtonPreview {
+  cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
+  disablePreview: boolean;
+  finalLabelButtonStyle: StyleProp<TextStyle>;
+  theme?: ITheme;
+  style: StyleProp<ImageStyle>;
+  children: React.ReactNode;
+}
+
+const RenderButtonPreview = ({
+  cameraState,
+  disablePreview,
+  style,
+  children,
+  theme,
+  finalLabelButtonStyle,
+}: IRenderButtonPreview) => {
+  const [state] = cameraState;
+  return (
+    <>
+      {!!state.value && !disablePreview ? (
+        <Image source={{ uri: state.value }} style={style} />
+      ) : !!children ? (
+        children
+      ) : (
+        <>
+          <Button.LeftIcon name="camera" color={theme?.colors.grey500} size={36} />
+          <Button.Label style={finalLabelButtonStyle}>Press to open camera</Button.Label>
+        </>
+      )}
+    </>
+  );
+};
 
 interface RenderCameraProps {
   cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
@@ -243,57 +321,8 @@ const RenderCamera = ({
   cameraOptions,
   permissionsState,
 }: RenderCameraProps) => {
-  const [state, setState] = cameraState;
+  const [state] = cameraState;
   const [permissions, requestPermission] = permissionsState;
-
-  const switchCameraType = useCallback(() => {
-    setState((state) => ({
-      ...state,
-      type: state.type === CameraType.back ? CameraType.front : CameraType.back,
-    }));
-  }, []);
-
-  const switchRatio = useCallback(() => {
-    setState((state) => ({
-      ...state,
-      ratio: {
-        '1:1': '4:3',
-        '4:3': '16:9',
-        '16:9': '1:1',
-      }[state.ratio] as CameraState['ratio'],
-    }));
-  }, [state]);
-
-  const switchFlash = useCallback(() => {
-    setState((state) => ({
-      ...state,
-      flashMode: {
-        auto: FlashMode.on,
-        on: FlashMode.off,
-        off: FlashMode.auto,
-      }[state.flashMode] as CameraState['flashMode'],
-    }));
-  }, []);
-
-  const snapPicture = useCallback(async () => {
-    if (!!cameraRef?.current) {
-      cameraRef.current
-        .takePictureAsync(cameraOptions)
-        .then((res) => {
-          if (!!res.uri) {
-            setState((state) => ({
-              ...state,
-              tempValue: res.uri,
-              height: res.height,
-              width: res.width,
-            }));
-          }
-        })
-        .catch((err) => {
-          console.warn(err);
-        });
-    }
-  }, [cameraRef.current]);
 
   const request = useCallback(() => {
     if (!permissions) {
@@ -303,40 +332,6 @@ const RenderCamera = ({
     }
   }, [permissions]);
 
-  const cancel = useCallback((e: any) => {
-    toggleModal(e);
-    setState((prev) => ({ ...prev, tempValue: prev.value }));
-  }, []);
-
-  const imagePicker = useCallback((image: ImageState) => {
-    if (!!image.value) {
-      setState((prev) => ({
-        ...prev,
-        tempValue: image.value,
-        height: image.height,
-        width: image.width,
-      }));
-    }
-  }, []);
-
-  const finalTopToolbarStyle = StyleSheet.flatten([styles.toolbarTop]);
-  const finalBottomToolbarStyle = StyleSheet.flatten([styles.toolbarBottom]);
-  const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
-  const finalPickerButtonStyle = StyleSheet.flatten([
-    finalToolbarButtonStyle,
-    {
-      height: undefined,
-      paddingHorizontal: 8,
-      paddingVertical: 8,
-    },
-  ]);
-  const finalContainerPickerButtonStyle = StyleSheet.flatten([
-    {
-      flex: 0,
-    },
-  ]);
-  const finalButtonSnapStyle = StyleSheet.flatten([styles.buttonSnap]);
-  const finalContainerButtonSnapStyle = StyleSheet.flatten([styles.containerButtonSnap]);
   const ratio = state.ratio.split(':');
   const finalCameraViewStyle = StyleSheet.flatten([
     styles.cameraView,
@@ -362,43 +357,7 @@ const RenderCamera = ({
 
   return (
     <>
-      <Appbar
-        insetTop
-        style={finalTopToolbarStyle}
-        disableShadow
-        backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
-        containerStyle={styles.toolbarTopContainer}
-      >
-        <View style={styles.toolbarTopWrap}>
-          <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchRatio}>
-            <Button.Label>[{state.ratio}]</Button.Label>
-            <Button.Label>Ratio</Button.Label>
-          </Button>
-        </View>
-        <View style={styles.toolbarTopWrap}>
-          <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchFlash}>
-            {state.flashMode !== 'auto' && (
-              <Button.LeftIcon
-                name={
-                  {
-                    on: 'flash',
-                    off: 'flash-off',
-                    auto: 'flash-auto',
-                  }[state.flashMode]
-                }
-                color={theme?.colors.white}
-              />
-            )}
-            <Button.Label style={{ textTransform: 'capitalize' }}>{state.flashMode}</Button.Label>
-          </Button>
-        </View>
-        <View style={styles.toolbarTopWrap}>
-          <Button onPress={cancel} variant="text" style={finalToolbarButtonStyle} rounded>
-            <Button.LeftIcon name="close" color={theme?.colors.white} />
-            <Button.Label>Cancel</Button.Label>
-          </Button>
-        </View>
-      </Appbar>
+      <ActionTop toggleModal={toggleModal} cameraState={cameraState} theme={theme} />
       <View style={styles.modalContent}>
         <Camera
           ref={cameraRef}
@@ -408,36 +367,191 @@ const RenderCamera = ({
           style={finalCameraViewStyle}
         />
       </View>
-      <Appbar
-        insetBottom
-        style={finalBottomToolbarStyle}
-        disableShadow
-        backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
-        containerStyle={styles.toolbarBottomContainer}
-      >
-        <ImagePicker
-          variant="text"
-          style={finalPickerButtonStyle}
-          containerStyle={finalContainerPickerButtonStyle}
-          rounded
-          onChange={imagePicker}
-          disablePreview
-        >
-          <Button.LeftIcon name="images" color={theme?.colors.white} size={32} />
-        </ImagePicker>
-        <Button
-          style={finalButtonSnapStyle}
-          containerStyle={finalContainerButtonSnapStyle}
-          rounded
-          onPress={snapPicture}
-        >
-          <Button.LeftIcon type="material" name="camera" color={theme?.colors.black} size={40} />
-        </Button>
-        <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchCameraType}>
-          <Button.LeftIcon name="camera-reverse" color={theme?.colors.white} size={36} />
-        </Button>
-      </Appbar>
+      <ActionBottom
+        cameraState={cameraState}
+        theme={theme}
+        cameraRef={cameraRef}
+        cameraOptions={cameraOptions}
+      />
     </>
+  );
+};
+
+interface IActionTop {
+  theme?: ITheme;
+  cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
+  toggleModal: Function;
+}
+
+const ActionTop = ({ cameraState, toggleModal, theme }: IActionTop) => {
+  const finalTopToolbarStyle = StyleSheet.flatten([styles.toolbarTop]);
+  const [state, setState] = cameraState;
+
+  const cancel = useCallback((e: any) => {
+    toggleModal(e);
+    setState((prev) => ({ ...prev, tempValue: prev.value }));
+  }, []);
+
+  const switchRatio = useCallback(() => {
+    setState((state) => ({
+      ...state,
+      ratio: {
+        '1:1': '4:3',
+        '4:3': '16:9',
+        '16:9': '1:1',
+      }[state.ratio] as CameraState['ratio'],
+    }));
+  }, [state]);
+
+  const switchFlash = useCallback(() => {
+    setState((state) => ({
+      ...state,
+      flashMode: {
+        auto: FlashMode.on,
+        on: FlashMode.off,
+        off: FlashMode.auto,
+      }[state.flashMode] as CameraState['flashMode'],
+    }));
+  }, []);
+  const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
+
+  return (
+    <Appbar
+      insetTop
+      style={finalTopToolbarStyle}
+      disableShadow
+      backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
+      containerStyle={styles.toolbarTopContainer}
+    >
+      <View style={styles.toolbarTopWrap}>
+        <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchRatio}>
+          <Button.Label>[{state.ratio}]</Button.Label>
+          <Button.Label>Ratio</Button.Label>
+        </Button>
+      </View>
+      <View style={styles.toolbarTopWrap}>
+        <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchFlash}>
+          {state.flashMode !== 'auto' && (
+            <Button.LeftIcon
+              name={
+                {
+                  on: 'flash',
+                  off: 'flash-off',
+                  auto: 'flash-auto',
+                }[state.flashMode]
+              }
+              color={theme?.colors.white}
+            />
+          )}
+          <Button.Label style={{ textTransform: 'capitalize' }}>{state.flashMode}</Button.Label>
+        </Button>
+      </View>
+      <View style={styles.toolbarTopWrap}>
+        <Button onPress={cancel} variant="text" style={finalToolbarButtonStyle} rounded>
+          <Button.LeftIcon name="close" color={theme?.colors.white} />
+          <Button.Label>Cancel</Button.Label>
+        </Button>
+      </View>
+    </Appbar>
+  );
+};
+
+interface IActionBottom {
+  theme?: ITheme;
+  cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
+  cameraRef: React.RefObject<Camera>;
+  cameraOptions: CameraPictureOptions | undefined;
+}
+
+const ActionBottom = ({ cameraState, cameraRef, cameraOptions, theme }: IActionBottom) => {
+  const [_, setState] = cameraState;
+
+  const switchCameraType = useCallback(() => {
+    setState((state) => ({
+      ...state,
+      type: state.type === CameraType.back ? CameraType.front : CameraType.back,
+    }));
+  }, []);
+
+  const snapPicture = useCallback(async () => {
+    if (!!cameraRef?.current) {
+      cameraRef.current
+        .takePictureAsync(cameraOptions)
+        .then((res) => {
+          if (!!res.uri) {
+            setState((state) => ({
+              ...state,
+              tempValue: res.uri,
+              height: res.height,
+              width: res.width,
+            }));
+          }
+        })
+        .catch((err) => {
+          console.warn(err);
+        });
+    }
+  }, [cameraRef.current]);
+
+  const imagePicker = useCallback((image: ImageState) => {
+    if (!!image.value) {
+      setState((prev) => ({
+        ...prev,
+        tempValue: image.value,
+        height: image.height,
+        width: image.width,
+      }));
+    }
+  }, []);
+
+  const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
+  const finalBottomToolbarStyle = StyleSheet.flatten([styles.toolbarBottom]);
+  const finalPickerButtonStyle = StyleSheet.flatten([
+    finalToolbarButtonStyle,
+    {
+      height: undefined,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+    },
+  ]);
+  const finalContainerPickerButtonStyle = StyleSheet.flatten([
+    {
+      flex: 0,
+    },
+  ]);
+  const finalButtonSnapStyle = StyleSheet.flatten([styles.buttonSnap]);
+  const finalContainerButtonSnapStyle = StyleSheet.flatten([styles.containerButtonSnap]);
+
+  return (
+    <Appbar
+      insetBottom
+      style={finalBottomToolbarStyle}
+      disableShadow
+      backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
+      containerStyle={styles.toolbarBottomContainer}
+    >
+      <ImagePicker
+        variant="text"
+        style={finalPickerButtonStyle}
+        containerStyle={finalContainerPickerButtonStyle}
+        rounded
+        onChange={imagePicker}
+        disablePreview
+      >
+        <Button.LeftIcon name="images" color={theme?.colors.white} size={32} />
+      </ImagePicker>
+      <Button
+        style={finalButtonSnapStyle}
+        containerStyle={finalContainerButtonSnapStyle}
+        rounded
+        onPress={snapPicture}
+      >
+        <Button.LeftIcon type="material" name="camera" color={theme?.colors.black} size={40} />
+      </Button>
+      <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={switchCameraType}>
+        <Button.LeftIcon name="camera-reverse" color={theme?.colors.white} size={36} />
+      </Button>
+    </Appbar>
   );
 };
 
@@ -479,11 +593,35 @@ const RenderPreview = ({
     setState((prev) => ({ ...prev, tempValue: '' }));
   }, []);
 
+  const imagePicker = useCallback((image: ImageState) => {
+    if (!!image.value) {
+      setState((prev) => ({
+        ...prev,
+        tempValue: image.value,
+        height: image.height,
+        width: image.width,
+      }));
+    }
+  }, []);
+
   const finalBottomToolbarStyle = StyleSheet.flatten([styles.toolbarBottom]);
   const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
   const finalButtonSnapStyle = StyleSheet.flatten([styles.buttonSnap]);
   const finalContainerButtonSnapStyle = StyleSheet.flatten([styles.containerButtonSnap]);
   const finalImageStyle = StyleSheet.flatten([styles.image]);
+  const finalPickerButtonStyle = StyleSheet.flatten([
+    finalToolbarButtonStyle,
+    {
+      height: undefined,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+    },
+  ]);
+  const finalContainerPickerButtonStyle = StyleSheet.flatten([
+    {
+      flex: 0,
+    },
+  ]);
 
   return (
     <>
@@ -499,9 +637,16 @@ const RenderPreview = ({
         backgroundColor={Color(theme?.colors.black).alpha(0.5).rgb().toString()}
         containerStyle={styles.toolbarBottomContainer}
       >
-        <Button variant="text" style={finalToolbarButtonStyle} rounded>
+        <ImagePicker
+          variant="text"
+          style={finalPickerButtonStyle}
+          containerStyle={finalContainerPickerButtonStyle}
+          rounded
+          onChange={imagePicker}
+          disablePreview
+        >
           <Button.LeftIcon name="images" color={theme?.colors.white} size={32} />
-        </Button>
+        </ImagePicker>
         <Button
           style={finalButtonSnapStyle}
           containerStyle={finalContainerButtonSnapStyle}
@@ -511,7 +656,7 @@ const RenderPreview = ({
           <Button.LeftIcon name="checkmark" color={theme?.colors.black} size={40} />
         </Button>
         <Button variant="text" style={finalToolbarButtonStyle} rounded onPress={takePicture}>
-          <Button.LeftIcon name="camera" color={theme?.colors.white} size={36} />
+          <Button.LeftIcon name="reload" color={theme?.colors.white} size={36} />
         </Button>
       </Appbar>
     </>

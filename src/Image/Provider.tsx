@@ -106,7 +106,7 @@ const ImageProvider = ({ children }: any) => {
             ndata.status = 'error';
           }
         })
-        .catch((e) => {
+        .catch(() => {
           ndata.status = 'error';
         })
         .finally(() => {
