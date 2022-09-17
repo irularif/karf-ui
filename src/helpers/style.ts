@@ -1,8 +1,8 @@
 import { cloneDeep, get } from 'lodash';
-import { StyleProp, StyleSheet, TextStyle } from 'react-native';
+import { StyleProp, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 import normalize from './normalizeText';
 
-const fontStyle = (style: StyleProp<TextStyle>) => {
+const fontStyle = (style: TextStyle) => {
   const fontStyle = get(style, 'fontStyle', 'normal');
   let fontWeight = get(style, 'fontWeight', '400');
   switch (fontWeight) {
@@ -35,6 +35,18 @@ export const parseStyle = (...style: StyleProp<any>): StyleProp<any> => {
     _style = fontStyle(_style);
   }
 
+  return _style;
+};
+
+export const getTextStyle = (style: ViewStyle | TextStyle) => {
+  const textKey = ['text', 'font', 'color', 'lineHeight', 'letterSpacing'];
+  const styleKey = Object.keys(style).filter(
+    (x) => textKey.filter((y) => x.includes(y)).length > -1
+  );
+  const _style: any = {};
+  styleKey.forEach((x) => {
+    _style[x] = (style as any)[x];
+  });
   return _style;
 };
 

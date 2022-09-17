@@ -1,15 +1,15 @@
 import { Portal } from '@gorhom/portal';
+import Color from 'color';
 import { get } from 'lodash';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Pressable, StyleSheet } from 'react-native';
+import { Animated, Dimensions, Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import { v4 as uuid } from 'uuid';
 import { RNFunctionComponent, trimStyle } from '../helpers';
 import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
 import { Text } from '../Text';
+import type { ITheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
-
-const { height, width } = Dimensions.get('window');
 
 type Layout = {
   height: number;
@@ -22,25 +22,27 @@ type Layout = {
 
 export interface TooltipProps extends ViewProps {
   children: React.ReactElement;
-  text?: string;
+  renderElement: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
   duration?: number;
   toggleAction?: 'onPress' | 'onLongPress' | 'onPressIn' | 'onPressOut';
+  containerStyle?: StyleProp<ViewStyle>;
+  wrapperStyle?: StyleProp<ViewStyle>;
+  triangleStyle?: StyleProp<ViewStyle>;
 }
 
 const _Tooltip: RNFunctionComponent<TooltipProps> = ({
-  text,
   theme,
-  position = 'top',
   duration = 3000,
   toggleAction = 'onLongPress',
   children,
+  style,
+  wrapperStyle,
   ...props
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [isVisible, setIsVisible] = React.useState(false);
-  const id = useRef(uuid()).current;
-  const [childPosition, setChildPosition] = React.useState<Layout>({
+  const visibleState = React.useState(false);
+  const childPositionState = React.useState<Layout>({
     height: 0,
     width: 0,
     x: 0,
@@ -48,12 +50,8 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
     pageX: 0,
     pageY: 0,
   });
-  const [layout, setLayout] = useState({
-    height: 0,
-    width: 0,
-    x: 0,
-    y: 0,
-  });
+  const [_, setIsVisible] = visibleState;
+  const [__, setChildPosition] = childPositionState;
   const childRef = React.useRef<any>(null);
   const isChildButton =
     ['Button', 'TouchableOpacity'].indexOf(
@@ -87,10 +85,6 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
       }
     );
   }, [childRef, children]);
-
-  const onTooltipLayout = useCallback((ev: any) => {
-    setLayout(ev.nativeEvent.layout);
-  }, []);
 
   const open = useCallback(() => {
     setIsVisible(true);
@@ -130,6 +124,74 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
     [children]
   );
 
+  const finalWrapperStyle = StyleSheet.flatten([
+    trimStyle(children.props.style, ['backgroundColor', 'margin', 'padding']),
+    wrapperStyle,
+  ]);
+
+  return (
+    <>
+      <Pressable
+        ref={forwardRef}
+        onLayout={onLayout}
+        delayLongPress={250}
+        {...{ [toggleAction]: handleOnPress }}
+        style={finalWrapperStyle}
+      >
+        {renderNode(children.type, true, {
+          ...children.props,
+          ...(isChildButton
+            ? {
+                delayLongPress: 250,
+                [toggleAction]: handleOnPress,
+              }
+            : {}),
+        })}
+      </Pressable>
+      <RenderElement
+        {...props}
+        theme={theme}
+        fadeAnim={fadeAnim}
+        visibleState={visibleState}
+        childPositionState={childPositionState}
+      />
+    </>
+  );
+};
+
+interface IRenderElement extends Partial<TooltipProps> {
+  visibleState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
+  childPositionState: [Layout, React.Dispatch<React.SetStateAction<Layout>>];
+  fadeAnim: Animated.Value;
+  theme?: ITheme;
+}
+
+const RenderElement = ({
+  renderElement,
+  visibleState,
+  childPositionState,
+  position = 'top',
+  triangleStyle,
+  containerStyle,
+  fadeAnim,
+  style,
+  theme,
+  ...props
+}: IRenderElement) => {
+  const [isVisible] = visibleState;
+  const [childPosition] = childPositionState;
+  const id = useRef(uuid()).current;
+  const { height, width } = Dimensions.get('window');
+  const [layout, setLayout] = useState({
+    height: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  });
+  const onTooltipLayout = useCallback((ev: any) => {
+    setLayout(ev.nativeEvent.layout);
+  }, []);
+
   const positionAvailability = useMemo(() => {
     let _position = position;
     switch (position) {
@@ -158,46 +220,49 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
   }, [position, layout, childPosition]);
 
   const positionStyle = useMemo(() => {
-    let style = {};
+    let _style = {};
     let _position = positionAvailability;
+
     switch (_position) {
       case 'top':
-        style = {
-          bottom: height - childPosition.pageY,
+        _style = {
+          bottom: height - childPosition.pageY + 2,
           left: childPosition.pageX + childPosition.width / 2 - layout.width / 2,
           flexDirection: 'column-reverse',
-          borderTopColor: theme?.colors.black,
+          borderTopColor: get(style, 'backgroundColor', theme?.colors.black),
         };
         break;
       case 'bottom':
-        style = {
-          top: childPosition.pageY + childPosition.height,
+        _style = {
+          top: childPosition.pageY + childPosition.height + 2,
           left: childPosition.pageX + childPosition.width / 2 - layout.width / 2,
           flexDirection: 'column',
-          borderBottomColor: theme?.colors.black,
+          borderBottomColor: get(style, 'backgroundColor', theme?.colors.black),
         };
         break;
       case 'left':
-        style = {
+        _style = {
           top: childPosition.pageY + childPosition.height / 2 - layout.height / 2,
-          right: width - childPosition.pageX,
+          right: width - childPosition.pageX + 2,
           flexDirection: 'row-reverse',
-          borderLeftColor: theme?.colors.black,
+          borderLeftColor: get(style, 'backgroundColor', theme?.colors.black),
         };
         break;
       case 'right':
-        style = {
+        _style = {
           top: childPosition.pageY + childPosition.height / 2 - layout.height / 2,
-          left: childPosition.pageX + childPosition.width,
+          left: childPosition.pageX + childPosition.width + 2,
           flexDirection: 'row',
-          borderRightColor: theme?.colors.black,
+          borderRightColor: get(style, 'backgroundColor', theme?.colors.black),
         };
+        break;
     }
-    return style;
-  }, [positionAvailability, childPosition, layout]);
+    return _style;
+  }, [style, positionAvailability, childPosition, layout]);
 
   const finalContainerStyle = StyleSheet.flatten([
     styles.container,
+    containerStyle,
     positionStyle,
     {
       opacity: fadeAnim.interpolate({
@@ -207,47 +272,42 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
     },
   ]);
 
-  const finalTriangleStyle = StyleSheet.flatten([styles.triangle, styles[positionAvailability]]);
+  const finalTriangleStyle = StyleSheet.flatten([
+    styles.triangle,
+    styles[positionAvailability],
+    {
+      borderColor: get(style, 'backgroundColor', theme?.colors.black),
+    },
+    triangleStyle,
+  ]);
 
   const finalTextStyle = StyleSheet.flatten([
     styles.text,
     {
       backgroundColor: theme?.colors.black,
-      color: theme?.colors.white,
+      color: Color(get(style, 'backgroundColor', theme?.colors.black)).isDark()
+        ? theme?.colors.white
+        : theme?.colors.black,
     },
+    style,
   ]);
 
-  const style = trimStyle(children.props.style, ['backgroundColor', 'color']);
+  if (isVisible) {
+    return (
+      <Portal hostName="@karf-ui" name={`@karf-ui-tooltip-${id}`}>
+        <View {...props} isAnimated style={finalContainerStyle} onLayout={onTooltipLayout}>
+          <View style={finalTriangleStyle} />
+          {typeof renderElement === 'string'
+            ? renderNode(Text, renderElement, {
+                style: finalTextStyle,
+              })
+            : renderNode(renderElement, true)}
+        </View>
+      </Portal>
+    );
+  }
 
-  return (
-    <>
-      <Pressable
-        ref={forwardRef}
-        onLayout={onLayout}
-        delayLongPress={250}
-        {...{ [toggleAction]: handleOnPress }}
-        style={style}
-      >
-        {renderNode(children.type, true, {
-          ...children.props,
-          ...(isChildButton
-            ? {
-                delayLongPress: 250,
-                [toggleAction]: handleOnPress,
-              }
-            : {}),
-        })}
-      </Pressable>
-      {isVisible && (
-        <Portal hostName="@karf-ui" name={`@karf-ui-tooltip-${id}`}>
-          <View {...props} isAnimated style={finalContainerStyle} onLayout={onTooltipLayout}>
-            <View style={finalTriangleStyle} />
-            <Text style={finalTextStyle}>{text}</Text>
-          </View>
-        </Portal>
-      )}
-    </>
-  );
+  return null;
 };
 
 const styles = StyleSheet.create({
@@ -265,14 +325,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   triangle: {
-    width: 0,
-    height: 0,
+    width: 2,
+    height: 2,
     backgroundColor: 'transparent',
     borderStyle: 'solid',
-    borderRadius: 2,
+    borderRadius: 4,
   },
   top: {
-    marginTop: -2,
+    marginTop: -1,
     borderTopWidth: 8,
     borderRightWidth: 8,
     borderBottomWidth: 0,
@@ -281,7 +341,7 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
   },
   bottom: {
-    marginBottom: -2,
+    marginBottom: -1,
     borderTopWidth: 0,
     borderRightWidth: 8,
     borderBottomWidth: 8,
@@ -290,7 +350,7 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
   },
   left: {
-    marginLeft: -2,
+    marginLeft: -1,
     borderBottomWidth: 8,
     borderRightWidth: 0,
     borderTopWidth: 8,
@@ -299,13 +359,14 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
   },
   right: {
-    marginRight: -2,
+    marginRight: -1,
     borderBottomWidth: 8,
     borderRightWidth: 8,
     borderTopWidth: 8,
     borderLeftWidth: 0,
     borderBottomColor: 'transparent',
     borderTopColor: 'transparent',
+    borderLeftColor: 'transparent',
   },
 });
 

@@ -39,7 +39,7 @@ export interface ModalProps extends PageProps {
   id?: string;
   isOpen?: boolean;
   isBlocking?: boolean;
-  onDismiss?: Function;
+  onClose?: Function;
   containerProps?: Partial<ViewProps>;
   contentContainerProps?: Partial<ViewProps>;
   children?: React.ReactNode;
@@ -59,7 +59,7 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
       contentContainerProps,
       isOpen: isOpen,
       isBlocking,
-      onDismiss,
+      onClose,
       position = 'center',
       insetTop = false,
       insetBottom = false,
@@ -101,13 +101,13 @@ const _Modal: RNFunctionComponent<ModalProps> = forwardRef(
       }).start(({ finished }) => {
         if (finished) {
           setVisible(false);
-          onDismiss && onDismiss();
+          onClose && onClose();
           if (id && _isOpen) {
             setIsOpen(false);
           }
         }
       });
-    }, [fadeAnim, onDismiss, _isOpen]);
+    }, [fadeAnim, onClose, _isOpen]);
 
     const _insetBottom = useMemo(() => {
       return isVisibleKeyboard ? false : insetBottom;

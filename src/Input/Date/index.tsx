@@ -324,7 +324,7 @@ const RenderPicker = ({
     );
   } else if (Platform.OS === 'ios') {
     return (
-      <Modal position="bottom" insetBottom isOpen={state.visible} onDismiss={() => _handleIOS()}>
+      <Modal position="bottom" insetBottom isOpen={state.visible} onClose={() => _handleIOS()}>
         <View style={styles.modal}>
           <RNDateTimePicker
             {...datePickerProps}

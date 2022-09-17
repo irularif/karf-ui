@@ -94,7 +94,6 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
             .then((res) => {
               if (res?.status === 'success') {
                 NativeImage.getSize(res.localUri, (width, height) => {
-                  console.log(res.localUri, width, height);
                   setState((prev) => ({
                     ...prev,
                     source: {
