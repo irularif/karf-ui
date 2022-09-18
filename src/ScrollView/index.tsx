@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import {
   ScrollView as NativeScrollView,
   ScrollViewProps as NativeScrollViewProps,
@@ -16,46 +16,52 @@ export interface ScrollViewProps extends NativeScrollViewProps {
   stretchContent?: boolean;
 }
 
-const _ScrollView: RNFunctionComponent<ScrollViewProps> = ({
-  style,
-  keyboardViewProps,
-  insetBottom = false,
-  insetTop = false,
-  stretchContent = true,
-  ...props
-}) => {
-  const inset = useSafeAreaInsets();
+const _ScrollView: RNFunctionComponent<ScrollViewProps> = forwardRef(
+  (
+    {
+      style,
+      keyboardViewProps,
+      insetBottom = false,
+      insetTop = false,
+      stretchContent = true,
+      ...props
+    },
+    ref: React.ForwardedRef<NativeScrollView>
+  ) => {
+    const inset = useSafeAreaInsets();
 
-  const finalKeyboardStyle = StyleSheet.flatten([
-    keyboardViewProps?.style,
-    !stretchContent && {
-      flexGrow: 0,
-      flexShrink: 0,
-    },
-  ]);
+    const finalKeyboardStyle = StyleSheet.flatten([
+      keyboardViewProps?.style,
+      !stretchContent && {
+        flexGrow: 0,
+        flexShrink: 0,
+      },
+    ]);
 
-  const finalStyle = StyleSheet.flatten([
-    styles.basic,
-    style,
-    insetTop && {
-      paddingTop: getStyleValue(style, ['padding', 'paddingVertical', 'paddingTop'], 0) + inset.top,
-    },
-    insetBottom && {
-      paddingBottom:
-        getStyleValue(style, ['padding', 'paddingVertical', 'paddingBottom'], 0) + inset.bottom,
-    },
-    !stretchContent && {
-      flexGrow: 0,
-      flexShrink: 0,
-    },
-  ]);
+    const finalStyle = StyleSheet.flatten([
+      styles.basic,
+      style,
+      insetTop && {
+        paddingTop:
+          getStyleValue(style, ['padding', 'paddingVertical', 'paddingTop'], 0) + inset.top,
+      },
+      insetBottom && {
+        paddingBottom:
+          getStyleValue(style, ['padding', 'paddingVertical', 'paddingBottom'], 0) + inset.bottom,
+      },
+      !stretchContent && {
+        flexGrow: 0,
+        flexShrink: 0,
+      },
+    ]);
 
-  return (
-    <KeyboardView {...keyboardViewProps} style={finalKeyboardStyle}>
-      <NativeScrollView {...props} style={finalStyle} />
-    </KeyboardView>
-  );
-};
+    return (
+      <KeyboardView {...keyboardViewProps} style={finalKeyboardStyle}>
+        <NativeScrollView {...props} style={finalStyle} ref={ref} />
+      </KeyboardView>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   basic: {

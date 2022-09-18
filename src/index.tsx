@@ -17,6 +17,8 @@ export * from './Tooltip';
 export * from './Field';
 export * from './Input';
 export * from './Image';
+export * from './MasonryList';
+export * from './Popover';
 
 export * from './helpers';
 export * from './hooks';

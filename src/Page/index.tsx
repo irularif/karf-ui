@@ -1,5 +1,5 @@
 import { merge } from 'lodash';
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { StatusBar, StatusBarProps, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { parseStyle } from '../helpers/style';
@@ -45,12 +45,6 @@ const _Page: RNFunctionComponent<PageProps> = ({
       statusBar
     );
   }, [statusBar, selectTheme]);
-
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     StatusBar.setBarStyle(finalStatusBar.barStyle);
-  //   }, [finalStatusBar])
-  // );
 
   return (
     <>
