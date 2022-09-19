@@ -9,11 +9,20 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Animated, Dimensions, Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  ViewStyle,
+} from 'react-native';
 import { v4 as uuid } from 'uuid';
-import { RNFunctionComponent, trimStyle } from '../helpers';
+import { getStyleValue, RNFunctionComponent, trimStyle } from '../helpers';
 import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
+import { Text } from '../Text';
 import type { ITheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
 import type { PopoverContentProps } from './Content';
@@ -29,23 +38,26 @@ type Layout = {
 };
 
 export interface PopoverProps extends ViewProps {
+  isOpen?: boolean;
+  onIsOpenChanged?: (isOpen: boolean) => void;
   children: [ReactElement<PopoverTriggerProps>, ReactElement<PopoverContentProps>];
   position?: 'top' | 'bottom' | 'left' | 'right';
-  duration?: number;
   toggleAction?: 'onPress' | 'onLongPress' | 'onPressIn' | 'onPressOut';
   containerStyle?: StyleProp<ViewStyle>;
   wrapperStyle?: StyleProp<ViewStyle>;
   triangleStyle?: StyleProp<ViewStyle>;
   withoutArrow?: boolean;
+  withoutBackdrop?: boolean;
 }
 
 const _Popover: RNFunctionComponent<PopoverProps> = ({
   theme,
-  duration = 3000,
   toggleAction = 'onLongPress',
   children: _children,
   style,
   wrapperStyle,
+  isOpen = false,
+  onIsOpenChanged,
   ...props
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -84,22 +96,6 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
     [children]
   );
 
-  const onLayout = useCallback(() => {
-    childRef.current?.measure(
-      (x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
-        const layout: Layout = {
-          height,
-          width,
-          x,
-          y,
-          pageX,
-          pageY,
-        };
-        setChildPosition(layout);
-      }
-    );
-  }, [childRef, children]);
-
   const open = useCallback(() => {
     setIsVisible(true);
     Animated.spring(fadeAnim, {
@@ -107,13 +103,7 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
       useNativeDriver: true,
       bounciness: 0,
       delay: 100,
-    }).start(({ finished }) => {
-      if (finished) {
-        setTimeout(() => {
-          close();
-        }, duration);
-      }
-    });
+    }).start();
   }, [fadeAnim]);
 
   const close = useCallback(() => {
@@ -150,7 +140,7 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
         });
       }
     );
-  }, [childRef.current]);
+  }, [childRef.current, children]);
 
   const handleOnPress = useCallback(
     (ev: any) => {
@@ -173,6 +163,9 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
   }, [isVisible]);
 
   useEffect(() => {
+    if (!!onIsOpenChanged) {
+      onIsOpenChanged(isVisible);
+    }
     if (isVisible) {
       watchPosition();
     } else {
@@ -187,12 +180,22 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
     };
   }, [isVisible]);
 
+  useEffect(() => {
+    setIsVisible((prev) => (prev != isOpen ? isOpen : prev));
+  }, [isOpen]);
+
   const finalWrapperStyle = StyleSheet.flatten([
-    {
-      position: 'relative',
-      alignItems: 'center',
-    },
-    trimStyle(children.props.style, ['backgroundColor', 'margin', 'padding']),
+    styles.wrapper,
+    trimStyle(get(children, 'props.style', {}), [
+      'backgroundColor',
+      'padding',
+      'paddingHorizontal',
+      'paddingVertical',
+      'paddingTop',
+      'paddingBottom',
+      'paddingLeft',
+      'paddingRight',
+    ]),
     wrapperStyle,
   ]);
 
@@ -200,7 +203,6 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
     <>
       <Pressable
         ref={forwardRef}
-        onLayout={onLayout}
         delayLongPress={250}
         {...{ [toggleAction]: handleOnPress }}
         style={finalWrapperStyle}
@@ -213,6 +215,8 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
                 [toggleAction]: handleOnPress,
               }
             : {}),
+          onLayout: onChildPosition,
+          style: trimStyle(get(children, 'props.style', {}), ['margin']),
         })}
       </Pressable>
       <RenderElement
@@ -223,6 +227,7 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
         fadeAnim={fadeAnim}
         visibleState={visibleState}
         childPositionState={childPositionState}
+        close={close}
       />
     </>
   );
@@ -233,6 +238,7 @@ interface IRenderElement extends Partial<PopoverProps> {
   childPositionState: [Layout, React.Dispatch<React.SetStateAction<Layout>>];
   fadeAnim: Animated.Value;
   theme?: ITheme;
+  close: () => void;
 }
 
 const RenderElement = ({
@@ -246,6 +252,8 @@ const RenderElement = ({
   style,
   theme,
   withoutArrow = false,
+  withoutBackdrop = false,
+  close,
   ...props
 }: IRenderElement) => {
   const [isVisible] = visibleState;
@@ -259,9 +267,10 @@ const RenderElement = ({
     y: 0,
   });
 
-  const children: any = Children.toArray(_children).find(
+  const child: any = Children.toArray(_children).find(
     (x) => get(x, 'type.displayName', get(x, 'type.name', '')) === 'Popover.Content'
   );
+  const children = child?.props?.children;
 
   const onTooltipLayout = useCallback((ev: any) => {
     setLayout(ev.nativeEvent.layout);
@@ -271,12 +280,12 @@ const RenderElement = ({
     let _position = position;
     switch (position) {
       case 'top':
-        if (height - childPosition.pageY - layout.height < 0) {
+        if (childPosition.pageY - layout.height - 2 - layout.height < 0) {
           _position = 'bottom';
         }
         break;
       case 'bottom':
-        if (childPosition.pageY + childPosition.height + layout.height > height) {
+        if (childPosition.pageY + childPosition.height + 2 + layout.height > height) {
           _position = 'top';
         }
         break;
@@ -301,7 +310,7 @@ const RenderElement = ({
     switch (_position) {
       case 'top':
         _style = {
-          bottom: height - childPosition.pageY + 2,
+          top: childPosition.pageY - layout.height - 2,
           left: childPosition.pageX + childPosition.width / 2 - layout.width / 2,
           flexDirection: 'column-reverse',
           borderTopColor: get(style, 'backgroundColor', theme?.colors.black),
@@ -318,7 +327,7 @@ const RenderElement = ({
       case 'left':
         _style = {
           top: childPosition.pageY + childPosition.height / 2 - layout.height / 2,
-          right: width - childPosition.pageX + 2,
+          left: childPosition.pageX - 2 - layout.width,
           flexDirection: 'row-reverse',
           borderLeftColor: get(style, 'backgroundColor', theme?.colors.black),
         };
@@ -357,13 +366,45 @@ const RenderElement = ({
     theme?.shadow,
     triangleStyle,
   ]);
-
+  const bg = getStyleValue(
+    get(children, 'props.style', {}),
+    ['backgroundColor'],
+    getStyleValue(style, ['backgroundColor'], theme?.colors.black)
+  );
+  const finalTextStyle = StyleSheet.flatten([
+    styles.text,
+    {
+      backgroundColor: bg,
+      color: theme?.colors.white,
+    },
+  ]);
+  const finalContainerButtonStyle = StyleSheet.flatten([
+    styles.containerButton,
+    {
+      opacity: fadeAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 1],
+      }),
+    },
+  ]);
   if (isVisible) {
+    const Background = Animated.createAnimatedComponent(TouchableOpacity);
+
     return (
       <Portal hostName="@karf-ui" name={`@karf-ui-popover-${id}`}>
+        {!withoutBackdrop && (
+          <Background activeOpacity={1} style={finalContainerButtonStyle} onPress={close} />
+        )}
         <View {...props} isAnimated style={finalContainerStyle} onLayout={onTooltipLayout}>
           {!withoutArrow && <View style={finalTriangleStyle} />}
-          {children}
+          {typeof children === 'string'
+            ? renderNode(Text, children, {
+                style: finalTextStyle,
+              })
+            : renderNode(children?.type, {
+                ...children?.props,
+                style: StyleSheet.flatten([finalTextStyle, children?.props?.style]),
+              })}
         </View>
       </Portal>
     );
@@ -373,10 +414,29 @@ const RenderElement = ({
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    alignItems: 'center',
+  },
   container: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  containerButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  text: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    overflow: 'hidden',
   },
   triangle: {
     width: 2,

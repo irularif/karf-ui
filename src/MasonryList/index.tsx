@@ -52,12 +52,15 @@ const _MasonryList = <T extends unknown>(
     onScroll,
     onEndReached,
     renderItem,
+    onRefresh: _onRefresh,
     onEndReachedThreshold,
     ListHeaderComponent,
     ListHeaderComponentStyle,
     ListFooterComponent,
     ListFooterComponentStyle,
     style,
+    containerStyle,
+    contentContainerStyle,
     ...props
   }: ComponentProps<MasonryListProps<T>>,
   ref: React.ForwardedRef<NativeScrollView>
@@ -74,7 +77,7 @@ const _MasonryList = <T extends unknown>(
 
   const onRefresh = useCallback(() => {
     setIsRefreshing(true);
-    onRefresh === null || onRefresh === void 0 ? void 0 : onRefresh();
+    _onRefresh === null || _onRefresh === void 0 ? void 0 : _onRefresh();
     setIsRefreshing(false);
   }, []);
 
@@ -90,6 +93,8 @@ const _MasonryList = <T extends unknown>(
       }
       scrollEventThrottle={16}
       onScroll={listenerScroll}
+      style={containerStyle}
+      contentContainerStyle={contentContainerStyle}
     >
       <View style={ListHeaderComponentStyle}>{ListHeaderComponent}</View>
       <RenderList
@@ -144,12 +149,12 @@ const RenderList = <T extends unknown>({
         key += 1;
         return (
           // @ts-ignore
-          <View key={key + num.toString()} style={finalColumnStyle}>
+          <View key={String(key) + String(num)} style={finalColumnStyle}>
             {data
               .map((el, i) => {
                 if (i % numColumns === num) {
+                  const key = !!keyExtractor ? keyExtractor(el, i) : String(num) + String(i);
                   const Component = renderItem({ item: el, index: i });
-                  const key = !!keyExtractor ? keyExtractor(el, i) : i;
                   return renderNode(Component?.type, {
                     key,
                     ...Component?.props,

@@ -63,12 +63,24 @@ export const getStyleValue = (
   return value;
 };
 
-export const trimStyle = (style: any, prefixs: string[]) => {
+export const trimStyle = (style: any, prefixs: Array<string | RegExp>) => {
   const s = cloneDeep(style);
   Object.keys(s).forEach((k) => {
-    const isExist = prefixs.filter((x) => k.indexOf(x) === 0);
+    const isExist = prefixs.filter((x) => k.match(new RegExp(x)));
     if (isExist.length > 0) {
       delete s[k];
+    }
+  });
+
+  return s;
+};
+
+export const extractStyle = (style: any, prefixs: Array<string>) => {
+  const s: any = {};
+  Object.keys(style).forEach((k) => {
+    const isExist = prefixs.filter((x) => k === x);
+    if (isExist.length > 0) {
+      s[k] = style[k];
     }
   });
 
