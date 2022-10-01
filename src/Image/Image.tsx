@@ -8,13 +8,13 @@ import {
   ImageSourcePropType,
   ImageStyle,
   StyleProp,
-  StyleSheet,
+  StyleSheet
 } from 'react-native';
 import { Appbar } from '../Appbar';
-import { Button } from '../Button';
-import { CancellablePromise, renderNode, RNFunctionComponent } from '../helpers';
+import { Button, ButtonIcon } from '../Button';
+import { renderNode, RNFunctionComponent } from '../helpers';
+import CacheManager from '../helpers/cacheManager';
 import withConfig from '../helpers/withConfig';
-import useImage from '../hooks/image';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Shimmer } from '../Shimmer';
@@ -63,13 +63,10 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
       height: 0,
     });
     const [state, setState] = imageState;
-    const { add } = useImage();
 
     const checkCache = useCallback(() => {
       const source = cloneDeep(state.originalSource);
       if (typeof source === 'object') {
-        let fileName = '';
-        let localUri = '';
         let uri = '';
         let headers = {};
         if (Array.isArray(source)) {
@@ -81,44 +78,36 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
         }
         if (!uri) return null;
         if (uri.startsWith('http')) {
-          fileName = uri.replace(/^.*[\\\/]/, '').replace(/[/\\?%*:|"<>]/g, '-');
-          localUri = dirs + fileName;
-          const prom = add({
-            url: uri,
-            localUri,
-            options: {
-              headers,
-            },
+          const imageCache = CacheManager.get(uri, {
+            headers,
           });
-          prom
+          imageCache
+            .getPath()
             .then((res) => {
-              if (res?.status === 'success') {
-                NativeImage.getSize(res.localUri, (width, height) => {
-                  setState((prev) => ({
-                    ...prev,
-                    source: {
-                      uri: res.localUri,
-                    },
-                    width,
-                    height,
-                  }));
+              if (!!res) {
+                const { width, height } = NativeImage.resolveAssetSource({
+                  uri: res,
                 });
-              } else {
                 setState((prev) => ({
                   ...prev,
-                  isError: true,
+                  source: {
+                    uri: res,
+                  },
+                  width,
+                  height,
                 }));
               }
             })
             .catch((e) => {
-              if (!e?.canceled) {
+              if (!e.canceled) {
+                console.warn(e);
                 setState((prev) => ({
                   ...prev,
                   isError: true,
                 }));
               }
-            }) as CancellablePromise;
-          return prom?.cancel;
+            });
+          return imageCache;
         } else {
           const { width, height } = NativeImage.resolveAssetSource({ uri });
           setState((prev) => ({ ...prev, source: { uri: uri }, width, height }));
@@ -132,10 +121,10 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
     }, []);
 
     useEffect(() => {
-      const cancel = checkCache();
+      const imageCache = checkCache();
 
       return () => {
-        cancel?.();
+        imageCache?.cancelSubscription();
       };
     }, [state.originalSource]);
 
@@ -273,7 +262,7 @@ const ImagePreview = ({ theme, imageState, style, enablePreview }: ImagePreviewP
         <Appbar backgroundColor="#0000" containerStyle={styles.appbar} insetTop>
           <Appbar.Title />
           <Appbar.RightAction>
-            <Button.Icon
+            <ButtonIcon
               name="close"
               size={24}
               variant="tonal"

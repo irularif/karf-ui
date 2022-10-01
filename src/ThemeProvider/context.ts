@@ -40,7 +40,7 @@ export interface IStyles {
   'Button.Label': Pick<ButtonLabelProps, 'style'>;
   'Button.LeftIcon': Pick<BIconProps, 'style' | 'type' | 'color' | 'size'>;
   'Button.RightIcon': Pick<BIconProps, 'style' | 'type' | 'color' | 'size'>;
-  'Button.Icon': Pick<ButtonIconProps, 'style' | 'type' | 'color' | 'size'>;
+  'ButtonIcon': Pick<ButtonIconProps, 'style' | 'type' | 'color' | 'size'>;
 }
 
 export type ThemeMode = 'light' | 'dark';

@@ -330,11 +330,11 @@ const RenderChild = ({ loading = false, disabled = false, theme, children, style
           if (React.isValidElement(child)) {
             props = child.props;
           }
-          if (name === 'Button.Icon') {
-            console.warn(
-              "Button.Icon must be independent and don't use it as a child. Use Button.LeftIcon or Button.RightIcon instead."
-            );
-          }
+          // if (name === 'Button.Icon') {
+          //   console.warn(
+          //     "Button.Icon must be independent and don't use it as a child. Use Button.LeftIcon or Button.RightIcon instead."
+          //   );
+          // }
 
           return (
             <React.Fragment key={index.toString()}>

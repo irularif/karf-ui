@@ -75,10 +75,10 @@ export const trimStyle = (style: any, prefixs: Array<string | RegExp>) => {
   return s;
 };
 
-export const extractStyle = (style: any, prefixs: Array<string>) => {
+export const extractStyle = (style: any, prefixs: Array<string | RegExp>) => {
   const s: any = {};
   Object.keys(style).forEach((k) => {
-    const isExist = prefixs.filter((x) => k === x);
+    const isExist = prefixs.filter((x) => k.match(new RegExp(x)));
     if (isExist.length > 0) {
       s[k] = style[k];
     }

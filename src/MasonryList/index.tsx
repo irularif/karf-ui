@@ -1,179 +1,91 @@
-import { forwardRef, useCallback, useMemo, useState } from 'react';
 import {
-  RefreshControl,
-  RefreshControlProps,
-  ScrollView as NativeScrollView,
-  StyleProp,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native';
-import { ComponentProps, renderNode } from '../helpers';
-import withConfig from '../helpers/withConfig';
-import { ScrollView, ScrollViewProps } from '../ScrollView';
+  FlashList,
+  ListRenderItem,
+  MasonryFlashList,
+  MasonryFlashListProps,
+} from '@shopify/flash-list';
+import React, { forwardRef } from 'react';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { extractStyle, getStyleValue } from '../helpers';
+import withConfig, { ComponentProps } from '../helpers/withConfig';
+import { useScreen } from '../hooks';
 import { View } from '../View';
 
-interface TItem<T> {
-  item: T;
-  index: number;
-}
-
-export interface MasonryListProps<T> extends ScrollViewProps {
-  numColumns?: number;
-  refreshing?: RefreshControlProps['refreshing'];
-  onRefresh?: RefreshControlProps['onRefresh'];
-  onEndReached?: () => void;
-  renderItem: ({ item, index }: TItem<T>) => React.ReactElement | null;
-  keyExtractor?: ((item: T, index: number) => string) | undefined;
-  onEndReachedThreshold?: number;
-  style?: StyleProp<ViewStyle>;
-  data: T[];
-  ListEmptyComponent?: React.ReactNode;
-  ListHeaderComponent?: React.ReactNode;
-  ListHeaderComponentStyle?: StyleProp<ViewStyle>;
-  ListFooterComponent?: React.ReactNode;
-  ListFooterComponentStyle?: StyleProp<ViewStyle>;
-  contentContainerStyle?: StyleProp<ViewStyle>;
+export interface MasonryListProps<T> extends MasonryFlashListProps<T> {
+  data: ReadonlyArray<T>;
   containerStyle?: StyleProp<ViewStyle>;
+  renderItem: ListRenderItem<T>;
 }
-
-const isCloseToBottom = (
-  { layoutMeasurement, contentOffset, contentSize }: any,
-  onEndReachedThreshold: number
-) => {
-  const paddingToBottom = contentSize.height * onEndReachedThreshold;
-  return layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
-};
 
 const _MasonryList = <T extends unknown>(
   {
-    data = [],
-    numColumns = 1,
-    refreshing: _refreshing,
-    onScroll,
-    onEndReached,
-    renderItem,
-    onRefresh: _onRefresh,
-    onEndReachedThreshold,
-    ListHeaderComponent,
-    ListHeaderComponentStyle,
-    ListFooterComponent,
-    ListFooterComponentStyle,
-    style,
+    theme,
     containerStyle,
+    style,
     contentContainerStyle,
+    estimatedItemSize = 100,
     ...props
   }: ComponentProps<MasonryListProps<T>>,
-  ref: React.ForwardedRef<NativeScrollView>
+  ref: React.ForwardedRef<FlashList<T>>
 ) => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const listenerScroll = useCallback((e: any) => {
-    const { nativeEvent } = e;
-    if (isCloseToBottom(nativeEvent, onEndReachedThreshold || 0.1))
-      onEndReached === null || onEndReached === void 0 ? void 0 : onEndReached();
-    if (!!onScroll && typeof onScroll === 'function') {
-      onScroll(e);
-    }
-  }, []);
-
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    _onRefresh === null || _onRefresh === void 0 ? void 0 : _onRefresh();
-    setIsRefreshing(false);
-  }, []);
-
-  const refreshing = useMemo(() => !!(_refreshing || isRefreshing), [_refreshing, isRefreshing]);
+  const { size } = useScreen();
+  const finalContainerStyle = StyleSheet.flatten([styles.container, containerStyle]);
+  const finalStyle = StyleSheet.flatten([styles.list, style, contentContainerStyle]);
+  const padding = extractStyle(finalContainerStyle, ['padding', 'margin']);
+  const inset = {
+    top:
+      -getStyleValue(
+        padding,
+        ['padding', 'paddingVertical', 'paddingTop', 'margin', 'marginVertical', 'marginTop'],
+        0
+      ),
+    bottom:
+      -getStyleValue(
+        padding,
+        ['padding', 'paddingVertical', 'paddingBottom', 'margin', 'marginVertical', 'marginBottom'],
+        0
+      ),
+    left:
+      -getStyleValue(
+        padding,
+        ['padding', 'paddingHorizontal', 'paddingLeft', 'margin', 'marginHorizontal', 'marginLeft'],
+        0
+      ),
+    right:
+      -getStyleValue(
+        padding,
+        [
+          'padding',
+          'paddingHorizontal',
+          'paddingRight',
+          'margin',
+          'marginHorizontal',
+          'marginRight',
+        ],
+        0
+      ),
+  };
 
   return (
-    <ScrollView
-      {...props}
-      // @ts-ignore
-      ref={ref}
-      refreshControl={
-        <RefreshControl refreshing={!!(refreshing || isRefreshing)} onRefresh={onRefresh} />
-      }
-      scrollEventThrottle={16}
-      onScroll={listenerScroll}
-      style={containerStyle}
-      contentContainerStyle={contentContainerStyle}
-    >
-      <View style={ListHeaderComponentStyle}>{ListHeaderComponent}</View>
-      <RenderList
-        renderItem={renderItem}
-        data={data}
-        numColumns={numColumns}
-        style={style}
+    <View style={finalContainerStyle}>
+      <MasonryFlashList
+        estimatedItemSize={estimatedItemSize}
+        key={size}
         {...props}
+        // @ts-ignore
+        ref={ref}
+        contentContainerStyle={finalStyle}
+        scrollIndicatorInsets={inset}
       />
-      <View style={ListFooterComponentStyle}>{ListFooterComponent}</View>
-    </ScrollView>
-  );
-};
-
-interface IRenderList<T> extends MasonryListProps<T> {
-  data: Array<T>;
-}
-
-const RenderList = <T extends unknown>({
-  data,
-  ListEmptyComponent,
-  horizontal,
-  style,
-  numColumns = 1,
-  renderItem,
-  keyExtractor,
-}: IRenderList<T>) => {
-  if (data.length === 0 && ListEmptyComponent) {
-    return renderNode(ListEmptyComponent, {});
-  }
-
-  const finalRowStyle = StyleSheet.flatten([
-    Styles.row,
-    {
-      flexDirection: horizontal ? 'column' : 'row',
-    },
-    style,
-  ]);
-
-  const finalColumnStyle = StyleSheet.flatten([
-    {
-      flex: 1 / numColumns,
-      flexDirection: horizontal ? 'row' : 'column',
-    },
-  ]);
-  let key = 0;
-
-  return (
-    // @ts-ignore
-    <View style={finalRowStyle}>
-      {Array.from(Array(numColumns), (_, num) => {
-        key += 1;
-        return (
-          // @ts-ignore
-          <View key={String(key) + String(num)} style={finalColumnStyle}>
-            {data
-              .map((el, i) => {
-                if (i % numColumns === num) {
-                  const key = !!keyExtractor ? keyExtractor(el, i) : String(num) + String(i);
-                  const Component = renderItem({ item: el, index: i });
-                  return renderNode(Component?.type, {
-                    key,
-                    ...Component?.props,
-                  });
-                }
-                return null;
-              })
-              .filter((e) => !!e)}
-          </View>
-        );
-      })}
     </View>
   );
 };
 
-const Styles = StyleSheet.create({
-  row: {
+const styles = StyleSheet.create({
+  container: {
     flex: 1,
   },
+  list: {},
 });
 
 _MasonryList.displayName = 'MasonryList';

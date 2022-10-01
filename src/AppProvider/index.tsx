@@ -1,12 +1,11 @@
 import { PortalHost, PortalProvider } from '@gorhom/portal';
-import * as FileSystem from 'expo-file-system';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions } from 'react-native';
 import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import CacheManager from '../helpers/cacheManager';
 import { getSize } from '../helpers/responsive';
-import ImageProvider from '../Image/Provider';
 import { KeyboardProvider } from '../KeyboardView/Provider';
 import { ModalProvider } from '../Modal/Provider';
 import { ScreenProvider } from '../ScreenProvider';
@@ -100,11 +99,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   }, []);
 
   const ensureDirExists = useCallback(async () => {
-    const dirs = FileSystem.cacheDirectory + 'images/';
-    const dirInfo = await FileSystem.getInfoAsync(dirs);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(dirs, { intermediates: true });
-    }
+    CacheManager.init();
     updateInitialize('cache', true);
   }, []);
 
@@ -114,6 +109,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
 
     return () => {
       event.remove();
+      CacheManager.cancelProcess();
     };
   }, []);
 
@@ -124,17 +120,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({
           <ScreenProvider>
             <ThemeProvider themes={themes}>
               <KeyboardProvider>
-                <ImageProvider>
-                  <FontLoader fonts={fonts} />
-                  <WrapperSplashScreenProps Component={SplashScreenComponent}>
-                    <PortalProvider>
-                      <ModalProvider>
-                        {children}
-                        <PortalHost name="@karf-ui" />
-                      </ModalProvider>
-                    </PortalProvider>
-                  </WrapperSplashScreenProps>
-                </ImageProvider>
+                <FontLoader fonts={fonts} />
+                <WrapperSplashScreenProps Component={SplashScreenComponent}>
+                  <PortalProvider>
+                    <ModalProvider>
+                      {children}
+                      <PortalHost name="@karf-ui" />
+                    </ModalProvider>
+                  </PortalProvider>
+                </WrapperSplashScreenProps>
               </KeyboardProvider>
             </ThemeProvider>
           </ScreenProvider>

@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
   },
 });
 
-_ButtonIcon.displayName = 'Button.Icon';
+_ButtonIcon.displayName = 'ButtonIcon';
 
 export const ButtonIcon = withConfig(_ButtonIcon);
