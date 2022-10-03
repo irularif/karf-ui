@@ -1,4 +1,3 @@
-import * as FileSystem from 'expo-file-system';
 import { cloneDeep, get, isEqual } from 'lodash';
 import { forwardRef, useCallback, useEffect, useState } from 'react';
 import {
@@ -7,19 +6,18 @@ import {
   ImageProps as NativeImageProps,
   ImageSourcePropType,
   ImageStyle,
+  Pressable,
   StyleProp,
-  StyleSheet
+  StyleSheet,
 } from 'react-native';
 import { Appbar } from '../Appbar';
-import { Button, ButtonIcon } from '../Button';
+import { ButtonIcon } from '../Button';
 import { renderNode, RNFunctionComponent } from '../helpers';
 import CacheManager from '../helpers/cacheManager';
 import withConfig from '../helpers/withConfig';
-import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Shimmer } from '../Shimmer';
 import type { ITheme } from '../ThemeProvider/context';
-import { View } from '../View';
 import { ImageZoom } from './ImageZoom';
 
 interface ImageState {
@@ -29,6 +27,7 @@ interface ImageState {
   visiblePreview: boolean;
   width: number;
   height: number;
+  modificationTime: number;
 }
 
 interface ImagePreviewProps {
@@ -47,10 +46,8 @@ export interface ImageProps extends NativeImageProps {
   enablePreview?: boolean;
   variant?: 'default' | 'rounded' | 'circle';
   ErrorComponent?: React.ComponentType<any> | React.ReactElement | null | undefined;
-  children?: React.ReactNode;
+  children?: React.ReactElement;
 }
-
-const dirs = FileSystem.cacheDirectory + 'images/';
 
 const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
   ({ variant = 'default', source, style, theme, enablePreview = false, ...props }, _) => {
@@ -61,6 +58,7 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
       visiblePreview: false,
       width: 0,
       height: 0,
+      modificationTime: 0,
     });
     const [state, setState] = imageState;
 
@@ -76,37 +74,41 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
           headers = get(source, 'headers', {});
           uri = get(source, 'uri', '');
         }
-        if (!uri) return null;
+        if (!uri) {
+          setState((prev) => ({
+            ...prev,
+            isError: true,
+          }));
+          return null;
+        }
         if (uri.startsWith('http')) {
-          const imageCache = CacheManager.get(uri, {
-            headers,
-          });
-          imageCache
-            .getPath()
-            .then((res) => {
+          const imageCache = CacheManager.get(
+            uri,
+            {
+              headers,
+            },
+            (res) => {
               if (!!res) {
-                const { width, height } = NativeImage.resolveAssetSource({
-                  uri: res,
-                });
-                setState((prev) => ({
-                  ...prev,
-                  source: {
-                    uri: res,
-                  },
-                  width,
-                  height,
-                }));
+                if (!!res.path) {
+                  setState((prev) => ({
+                    ...prev,
+                    source: {
+                      uri: res.path,
+                      cache: 'reload',
+                    },
+                    width: res.width,
+                    height: res.height,
+                    modificationTime: res.modificationTime,
+                  }));
+                } else if (!res.path && !!res.error) {
+                  setState((prev) => ({
+                    ...prev,
+                    isError: true,
+                  }));
+                }
               }
-            })
-            .catch((e) => {
-              if (!e.canceled) {
-                console.warn(e);
-                setState((prev) => ({
-                  ...prev,
-                  isError: true,
-                }));
-              }
-            });
+            }
+          );
           return imageCache;
         } else {
           const { width, height } = NativeImage.resolveAssetSource({ uri });
@@ -157,33 +159,24 @@ const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
     const finalContainerButtonStyle = StyleSheet.flatten([
       styles.container,
       styles[variant],
-      state.isError && {
-        backgroundColor: theme?.colors?.error,
-      },
-      style,
-    ]);
-    const finalButtonStyle = StyleSheet.flatten([
-      styles.image,
       {
-        paddingHorizontal: 0,
-        paddingVertical: 0,
+        backgroundColor: theme?.colors.grey100,
       },
       state.isError && {
-        backgroundColor: theme?.colors?.error,
+        backgroundColor: theme?.colors?.white,
       },
       style,
     ]);
 
     return (
       <>
-        <Button
+        <Pressable
           disabled={!enablePreview || state.isError || !state.source}
-          containerStyle={finalContainerButtonStyle}
-          style={finalButtonStyle}
+          style={finalContainerButtonStyle}
           onPress={togglePreview}
         >
           <RenderImage {...props} theme={theme} style={finalStyle} imageState={imageState} />
-        </Button>
+        </Pressable>
         <ImagePreview
           theme={theme}
           imageState={imageState}
@@ -211,19 +204,21 @@ const RenderImage = ({
         !!ErrorComponent ? (
           renderNode(ErrorComponent, true)
         ) : (
-          <View style={styles.image}>
-            <Icon
-              name="image-broken"
-              type="material-community"
-              size={45}
-              color={theme?.colors.divider}
-            />
-          </View>
+          <NativeImage
+            source={require('../../assets/images/image-error.png')}
+            style={styles.image}
+            resizeMode="contain"
+          />
         )
       ) : !!state.source ? (
-        <NativeImage source={state.source} style={style} {...props} />
+        <NativeImage
+          key={String(state.modificationTime)}
+          source={state.source}
+          style={style}
+          {...props}
+        />
       ) : !!children ? (
-        renderNode(children, true)
+        renderNode(children?.type, children?.props)
       ) : (
         <Shimmer style={styles.image} />
       )}
@@ -292,6 +287,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    margin: 4,
   },
   rounded: {
     borderRadius: 16,

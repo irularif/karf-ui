@@ -34,11 +34,15 @@ const linear = ANIMATION.interpolate({
 runAnimation();
 
 const _Shimmer: RNFunctionComponent<ShimmerProps> = ({
-  colors = ['#eee', '#ddd', '#eee'],
+  colors: _colors,
   locations = [0.2, 0.5, 0.8],
   style,
+  theme,
   ...props
 }) => {
+  const colors: any = !!_colors
+    ? _colors
+    : [theme?.colors.grey100, theme?.colors.grey200, theme?.colors.grey100];
   const ref: any = useRef();
   const [positionX, setPositionX] = useState<number | undefined>();
 
@@ -50,7 +54,13 @@ const _Shimmer: RNFunctionComponent<ShimmerProps> = ({
     );
   }, [ref]);
 
-  const finalStyle = StyleSheet.flatten([styles.shimmer, style]);
+  const finalStyle = StyleSheet.flatten([
+    styles.shimmer,
+    {
+      backgroundColor: theme?.colors.grey100,
+    },
+    style,
+  ]);
 
   return (
     // @ts-ignore
@@ -79,7 +89,6 @@ const _Shimmer: RNFunctionComponent<ShimmerProps> = ({
 const styles = StyleSheet.create({
   shimmer: {
     overflow: 'hidden',
-    backgroundColor: '#eee',
   },
 });
 

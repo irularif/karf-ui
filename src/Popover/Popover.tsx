@@ -1,4 +1,5 @@
 import { Portal } from '@gorhom/portal';
+import Color from 'color';
 import { get } from 'lodash';
 import React, {
   Children,
@@ -311,7 +312,7 @@ const RenderElement = ({
       case 'top':
         _style = {
           top: childPosition.pageY - layout.height - 2,
-          left: childPosition.pageX + childPosition.width / 2 - layout.width / 2,
+          left: Math.max(0, childPosition.pageX + childPosition.width / 2 - layout.width / 2),
           flexDirection: 'column-reverse',
           borderTopColor: get(style, 'backgroundColor', theme?.colors.black),
         };
@@ -319,7 +320,7 @@ const RenderElement = ({
       case 'bottom':
         _style = {
           top: childPosition.pageY + childPosition.height + 2,
-          left: childPosition.pageX + childPosition.width / 2 - layout.width / 2,
+          left: Math.max(0, childPosition.pageX + childPosition.width / 2 - layout.width / 2),
           flexDirection: 'column',
           borderBottomColor: get(style, 'backgroundColor', theme?.colors.black),
         };
@@ -357,25 +358,25 @@ const RenderElement = ({
     },
   ]);
 
+  const bg = getStyleValue(
+    StyleSheet.flatten(get(children, 'props.style', {})),
+    ['backgroundColor'],
+    getStyleValue(style, ['backgroundColor'], theme?.colors.white)
+  );
   const finalTriangleStyle = StyleSheet.flatten([
     styles.triangle,
     styles[positionAvailability],
     {
-      borderColor: get(style, 'backgroundColor', theme?.colors.black),
+      borderColor: bg || get(style, 'backgroundColor', theme?.colors.black),
     },
     theme?.shadow,
     triangleStyle,
   ]);
-  const bg = getStyleValue(
-    get(children, 'props.style', {}),
-    ['backgroundColor'],
-    getStyleValue(style, ['backgroundColor'], theme?.colors.black)
-  );
   const finalTextStyle = StyleSheet.flatten([
     styles.text,
     {
       backgroundColor: bg,
-      color: theme?.colors.white,
+      color: Color(bg).isDark() ? theme?.colors.white : theme?.colors.black,
     },
   ]);
   const finalContainerButtonStyle = StyleSheet.flatten([
@@ -389,7 +390,6 @@ const RenderElement = ({
   ]);
   if (isVisible) {
     const Background = Animated.createAnimatedComponent(TouchableOpacity);
-
     return (
       <Portal hostName="@karf-ui" name={`@karf-ui-popover-${id}`}>
         {!withoutBackdrop && (
@@ -401,10 +401,7 @@ const RenderElement = ({
             ? renderNode(Text, children, {
                 style: finalTextStyle,
               })
-            : renderNode(children?.type, {
-                ...children?.props,
-                style: StyleSheet.flatten([finalTextStyle, children?.props?.style]),
-              })}
+            : renderNode(children?.type, children?.props)}
         </View>
       </Portal>
     );

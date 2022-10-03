@@ -36,6 +36,8 @@ export interface ButtonProps extends TouchableOpacityProps, TouchableNativeFeedb
   modalProps?: Omit<TModalProps, 'id'>;
   containerProps?: Partial<ViewProps>;
   rounded?: boolean;
+  disabledStyle?: ViewStyle;
+  loadingStyle?: ViewStyle;
 }
 
 interface LoadingProps {
@@ -59,6 +61,7 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
   theme,
   style,
   disabled,
+  disabledStyle,
   containerStyle,
   Component = View,
   componentProps,
@@ -66,6 +69,7 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
   variant = 'filled',
   shadow = false,
   loading = false,
+  loadingStyle,
   loadingProps,
   modalId,
   modalProps,
@@ -173,32 +177,38 @@ const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
       },
     }[variant],
     loading &&
-      {
-        text: {},
-        tonal: {
-          backgroundColor: Color(baseColor).alpha(0.15).rgb().string(),
-        },
-        outlined: {
-          borderColor: Color(baseColor).alpha(0.7).rgb().string(),
-        },
-        filled: {
-          backgroundColor: Color(baseColor).alpha(0.5).rgb().string(),
-        },
-      }[variant],
+      StyleSheet.flatten([
+        {
+          text: {},
+          tonal: {
+            backgroundColor: Color(baseColor).alpha(0.15).rgb().string(),
+          },
+          outlined: {
+            borderColor: Color(baseColor).alpha(0.7).rgb().string(),
+          },
+          filled: {
+            backgroundColor: Color(baseColor).alpha(0.5).rgb().string(),
+          },
+        }[variant],
+        loadingStyle,
+      ]),
     disabled &&
-      {
-        text: {},
-        tonal: {
-          backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
-        },
-        outlined: {
-          backgroundColor: Color(theme?.colors?.disabled).alpha(0).rgb().string(),
-          borderColor: Color(theme?.colors?.disabled).alpha(0.8).rgb().string(),
-        },
-        filled: {
-          backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
-        },
-      }[variant],
+      StyleSheet.flatten([
+        {
+          text: {},
+          tonal: {
+            backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
+          },
+          outlined: {
+            backgroundColor: Color(theme?.colors?.disabled).alpha(0).rgb().string(),
+            borderColor: Color(theme?.colors?.disabled).alpha(0.8).rgb().string(),
+          },
+          filled: {
+            backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
+          },
+        }[variant],
+        disabledStyle,
+      ]),
     rounded && {
       borderRadius: 9999,
     },

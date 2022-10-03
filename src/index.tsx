@@ -19,6 +19,7 @@ export * from './Input';
 export * from './Image';
 export * from './MasonryList';
 export * from './Popover';
+export * from './BlurView';
 
 export * from './helpers';
 export * from './hooks';

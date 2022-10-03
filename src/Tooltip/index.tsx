@@ -1,4 +1,5 @@
 import { ReactElement, useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Popover, PopoverProps } from '../Popover';
@@ -13,6 +14,7 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
   content,
   children,
   duration = 3000,
+  theme,
   ...props
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -27,7 +29,15 @@ const _Tooltip: RNFunctionComponent<TooltipProps> = ({
 
   return (
     // @ts-ignore
-    <Popover isOpen={isVisible} onIsOpenChanged={setIsVisible} withoutBackdrop {...props}>
+    <Popover
+      isOpen={isVisible}
+      onIsOpenChanged={setIsVisible}
+      withoutBackdrop
+      style={{
+        backgroundColor: theme?.colors.black,
+      }}
+      {...props}
+    >
       <Popover.Trigger>{children}</Popover.Trigger>
       <Popover.Content>{content}</Popover.Content>
     </Popover>

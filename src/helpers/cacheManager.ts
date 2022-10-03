@@ -2,27 +2,49 @@ import SHA1 from 'crypto-js/sha1';
 import type { DownloadOptions } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system';
 import { uniqBy, uniqueId } from 'lodash';
+import { Image } from 'react-native';
 import { waitUntil } from './waitUntil';
 
 type CacheEntryStatus = 'queue' | 'downloading' | 'success' | 'failed';
 
 const BASE_DIR = `${FileSystem.cacheDirectory}file-cache/`;
 export class CacheEntry {
-  id: string;
+  ready: boolean = false;
   uri: string;
   options: DownloadOptions;
   status: CacheEntryStatus;
   path: string = '';
   progress: number = 0;
   error: unknown = undefined;
+  width: number = 0;
+  height: number = 0;
+  size: number = 0;
+  modificationTime: number = 0;
+  callback: Record<string, (value: CacheEntry) => void> = {};
 
+  private tempPath: string = '';
   private downloadRef: FileSystem.DownloadResumable | undefined = undefined;
 
   constructor(uri: string, options: DownloadOptions) {
-    this.id = uniqueId();
     this.uri = uri;
     this.options = options;
     this.status = 'queue';
+    this.init(uri);
+  }
+
+  private async init(uri: string) {
+    const { path, exists, size, modificationTime, tmpPath } = await getCacheEntry(uri);
+    if (exists) {
+      await Image.getSize(path, (width, height) => {
+        this.height = height;
+        this.width = width;
+      });
+      this.size = size;
+      this.modificationTime = modificationTime;
+      this.path = path;
+      this.tempPath = tmpPath;
+    }
+    this.ready = true;
   }
 
   private downloadCallback(downloadProgress: FileSystem.DownloadProgressData) {
@@ -33,14 +55,12 @@ export class CacheEntry {
 
   async download() {
     try {
-      const { uri, options } = this;
-      const { path, exists, tmpPath } = await getCacheEntry(uri);
-      if (exists) {
-        this.path = path;
-        this.status = 'success';
+      await waitUntil(() => this.ready);
+      const { uri, options, path, status, tempPath } = this;
+      if (!!path && status === 'success') {
         return;
       }
-      let ref = FileSystem.createDownloadResumable(uri, tmpPath, options, (downloadProgress) => {
+      let ref = FileSystem.createDownloadResumable(uri, tempPath, options, (downloadProgress) => {
         const progress =
           downloadProgress?.totalBytesWritten / downloadProgress?.totalBytesExpectedToWrite;
         this.progress = progress;
@@ -55,17 +75,27 @@ export class CacheEntry {
       }
 
       if (result && result.status >= 200 && result.status <= 300 && result.uri) {
-        await FileSystem.moveAsync({ from: tmpPath, to: path });
-        if (!this.path) {
-          this.path = path;
-        }
+        await FileSystem.moveAsync({ from: tempPath, to: path });
+        await Image.getSize(path, (width, height) => {
+          this.height = height;
+          this.width = width;
+        });
+        const info = await FileSystem.getInfoAsync(path);
+        this.size = info.size || 0;
+        this.modificationTime = info.modificationTime || 0;
+        this.path = path;
+        this.error = undefined;
         this.status = 'success';
       } else {
         this.status = 'failed';
       }
       this.downloadRef = undefined;
+      Object.values(this.callback).forEach((fn) => fn(this));
     } catch (error) {
+      this.status = 'failed';
+      this.downloadRef = undefined;
       this.error = error;
+      Object.values(this.callback).forEach((fn) => fn(this));
     }
   }
 
@@ -101,37 +131,38 @@ export class CacheEntry {
       this.download();
     }
   }
+
+  registerCallback(key: string, callback: (value: CacheEntry) => void) {
+    this.callback[key] = callback;
+  }
+
+  deleteCallback(key: string) {
+    delete this.callback[key];
+  }
 }
 
 export class CacheItem {
   id: string = uniqueId();
   cache: CacheEntry;
-  private reject: (reason?: any) => void = () => {};
+  private callback: (value: CacheEntry | undefined) => void = () => {};
 
-  constructor(cache: CacheEntry) {
+  constructor(cache: CacheEntry, callback: (res: CacheEntry | undefined) => void) {
     this.cache = cache;
+    this.callback = callback;
+    this.cache.registerCallback(this.id, callback);
+    this.init();
+  }
+
+  private async init() {
+    await waitUntil(() => this.cache.ready);
+    if (!!this.cache.path) {
+      this.callback(this.cache);
+    }
   }
 
   cancelSubscription() {
-    this.reject({
-      canceled: true,
-    });
-  }
-
-  async getPath(): Promise<string | undefined> {
-    return new Promise(async (resolve, reject) => {
-      this.reject = reject;
-      if (this.cache.path) {
-        resolve(this.cache.path);
-        return;
-      }
-      await waitUntil(() => !!this.cache.path || this.cache.status === 'failed');
-      if (this.cache.path) {
-        resolve(this.cache.path);
-      } else {
-        reject(this.cache.error);
-      }
-    });
+    this.cache.deleteCallback(this.id);
+    this.callback(undefined);
   }
 }
 
@@ -186,7 +217,11 @@ export default class CacheManager {
     return CacheManager.entries.find((x) => x.uri === uri);
   }
 
-  static get(uri: string, options: DownloadOptions): CacheItem {
+  static get(
+    uri: string,
+    options: DownloadOptions,
+    callback: (cache: CacheEntry | undefined) => void
+  ): CacheItem {
     let entry = CacheManager.getEntry(uri);
     if (!entry) {
       entry = new CacheEntry(uri, options);
@@ -196,7 +231,7 @@ export default class CacheManager {
         CacheManager.run();
       }
     }
-    let cache = new CacheItem(entry);
+    let cache = new CacheItem(entry, callback);
     return cache;
   }
 
@@ -223,7 +258,7 @@ export default class CacheManager {
 
 const getCacheEntry = async (
   uri: string
-): Promise<{ exists: boolean; path: string; tmpPath: string }> => {
+): Promise<FileSystem.FileInfo & { path: string; tmpPath: string }> => {
   const filename = uri.substring(
     uri.lastIndexOf('/'),
     uri.indexOf('?') === -1 ? uri.length : uri.indexOf('?')
@@ -232,5 +267,5 @@ const getCacheEntry = async (
   const path = `${BASE_DIR}${SHA1(uri)}${ext}`;
   const tmpPath = `${BASE_DIR}${SHA1(uri)}-${uniqueId()}${ext}`;
   const info = await FileSystem.getInfoAsync(path);
-  return { exists: !!info?.exists, path, tmpPath };
+  return { ...info, path, tmpPath };
 };
