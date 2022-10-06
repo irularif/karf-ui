@@ -17,7 +17,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Dimensions, ImageStyle, StyleProp, StyleSheet, TextStyle } from 'react-native';
+import { Dimensions, ImageStyle, StyleProp, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 import { Appbar } from '../../Appbar';
 import { Button, ButtonProps } from '../../Button';
 import type { RNFunctionComponent } from '../../helpers';
@@ -321,7 +321,7 @@ const RenderCamera = ({
   cameraOptions,
   permissionsState,
 }: RenderCameraProps) => {
-  const [state] = cameraState;
+  const [state, setState] = cameraState;
   const [permissions, requestPermission] = permissionsState;
 
   const request = useCallback(() => {
@@ -340,18 +340,42 @@ const RenderCamera = ({
       height: width * (Number(ratio[0]) / Number(ratio[1])),
     },
   ]);
+  const finalToolbarButtonStyle = StyleSheet.flatten([styles.toolbarButton]);
+  const finalTopToolbarStyle: ViewStyle = StyleSheet.flatten([
+    styles.toolbarTop,
+    { justifyContent: 'flex-end' },
+  ]);
+
+  const cancel = useCallback((e: any) => {
+    toggleModal(e);
+    setState((prev) => ({ ...prev, tempValue: prev.value }));
+  }, []);
 
   if (!permissions || permissions.status !== PermissionStatus.GRANTED) {
     return (
-      <View style={styles.permission}>
-        <Text style={styles.text} heading="h4">
-          Camera
-        </Text>
-        <Text style={styles.text}>Enable access so you can start taking photos.</Text>
-        <Button variant="text" onPress={request}>
-          <Button.Label style={styles.labelButton}>Request Permission</Button.Label>
-        </Button>
-      </View>
+      <>
+        <Appbar
+          insetTop
+          style={finalTopToolbarStyle}
+          disableShadow
+          backgroundColor={Color(theme?.colors.black).alpha(0).rgb().toString()}
+          containerStyle={styles.toolbarTopContainer}
+        >
+          <Button onPress={cancel} variant="text" style={finalToolbarButtonStyle} rounded>
+            <Button.LeftIcon name="close" color={theme?.colors.white} />
+            <Button.Label>Cancel</Button.Label>
+          </Button>
+        </Appbar>
+        <View style={styles.permission}>
+          <Text style={styles.text} heading="h4">
+            Camera
+          </Text>
+          <Text style={styles.text}>Enable access so you can start taking photos.</Text>
+          <Button variant="text" onPress={request}>
+            <Button.Label style={styles.labelButton}>Request Permission</Button.Label>
+          </Button>
+        </View>
+      </>
     );
   }
 

@@ -20,10 +20,11 @@ export class CacheEntry {
   height: number = 0;
   size: number = 0;
   modificationTime: number = 0;
-  callback: Record<string, (value: CacheEntry) => void> = {};
 
-  private tempPath: string = '';
-  private downloadRef: FileSystem.DownloadResumable | undefined = undefined;
+  private _callback: Record<string, (value: CacheEntry) => void> = {};
+  private _path: string = '';
+  private _tempPath: string = '';
+  private _downloadRef: FileSystem.DownloadResumable | undefined = undefined;
 
   constructor(uri: string, options: DownloadOptions) {
     this.uri = uri;
@@ -32,19 +33,38 @@ export class CacheEntry {
     this.init(uri);
   }
 
-  private async init(uri: string) {
-    const { path, exists, size, modificationTime, tmpPath } = await getCacheEntry(uri);
-    if (exists) {
-      await Image.getSize(path, (width, height) => {
-        this.height = height;
-        this.width = width;
-      });
-      this.size = size;
-      this.modificationTime = modificationTime;
-      this.path = path;
-      this.tempPath = tmpPath;
-    }
+  private init(uri: string) {
+    const filename = uri.substring(
+      uri.lastIndexOf('/'),
+      uri.indexOf('?') === -1 ? uri.length : uri.indexOf('?')
+    );
+    const ext =
+      filename.indexOf('.') === -1 ? '.jpg' : filename.substring(filename.lastIndexOf('.'));
+    const _path = `${BASE_DIR}${SHA1(uri)}${ext}`;
+    const _tempPath = `${BASE_DIR}${SHA1(uri)}-${uniqueId()}${ext}`;
+    this._path = _path;
+    this._tempPath = _tempPath;
     this.ready = true;
+    this.checkCached();
+  }
+
+  private async checkCached() {
+    try {
+      const { _path: path } = this;
+      const info = await FileSystem.getInfoAsync(path);
+      if (!!info && !!info.exists) {
+        const { size, modificationTime } = info;
+        await Image.getSize(path, (width, height) => {
+          this.height = height;
+          this.width = width;
+        });
+        this.size = size;
+        this.modificationTime = modificationTime;
+        this.path = path;
+      }
+    } catch (error) {
+      console.warn(error);
+    }
   }
 
   private downloadCallback(downloadProgress: FileSystem.DownloadProgressData) {
@@ -55,26 +75,26 @@ export class CacheEntry {
 
   async download() {
     try {
-      await waitUntil(() => this.ready);
-      const { uri, options, path, status, tempPath } = this;
+      const { uri, options, _path: path, status, _tempPath: tempPath } = this;
       if (!!path && status === 'success') {
         return;
       }
+
       let ref = FileSystem.createDownloadResumable(uri, tempPath, options, (downloadProgress) => {
         const progress =
           downloadProgress?.totalBytesWritten / downloadProgress?.totalBytesExpectedToWrite;
         this.progress = progress;
       });
       let result = undefined;
-      if (!!this.downloadRef) {
-        ref = this.downloadRef;
+      if (!!this._downloadRef) {
+        ref = this._downloadRef;
         result = await ref.resumeAsync();
       } else {
-        this.downloadRef = ref;
+        this._downloadRef = ref;
         result = await ref.downloadAsync();
       }
 
-      if (result && result.status >= 200 && result.status <= 300 && result.uri) {
+      if (result && result.status >= 200 && result.status < 300 && result.uri) {
         await FileSystem.moveAsync({ from: tempPath, to: path });
         await Image.getSize(path, (width, height) => {
           this.height = height;
@@ -89,39 +109,40 @@ export class CacheEntry {
       } else {
         this.status = 'failed';
       }
-      this.downloadRef = undefined;
-      Object.values(this.callback).forEach((fn) => fn(this));
+      this._downloadRef = undefined;
+      Object.values(this._callback).forEach((fn) => fn(this));
     } catch (error) {
+      console.warn(error);
       this.status = 'failed';
-      this.downloadRef = undefined;
+      this._downloadRef = undefined;
       this.error = error;
-      Object.values(this.callback).forEach((fn) => fn(this));
+      Object.values(this._callback).forEach((fn) => fn(this));
     }
   }
 
   pauseDownload() {
-    if (!!this.downloadRef) {
-      this.downloadRef.pauseAsync();
+    if (!!this._downloadRef) {
+      this._downloadRef.pauseAsync();
     }
   }
 
   cancelDownload() {
-    if (!!this.downloadRef) {
-      this.downloadRef.cancelAsync();
+    if (!!this._downloadRef) {
+      this._downloadRef.cancelAsync();
     }
   }
 
   saveDownload() {
-    if (!!this.downloadRef) {
-      this.downloadRef.savable();
+    if (!!this._downloadRef) {
+      this._downloadRef.savable();
     }
   }
 
   resumeDownload(snapshot?: FileSystem.DownloadPauseState) {
-    if (!!this.downloadRef) {
-      this.downloadRef.resumeAsync();
+    if (!!this._downloadRef) {
+      this._downloadRef.resumeAsync();
     } else if (!!snapshot) {
-      this.downloadRef = new FileSystem.DownloadResumable(
+      this._downloadRef = new FileSystem.DownloadResumable(
         snapshot.url,
         snapshot.fileUri,
         snapshot.options,
@@ -133,11 +154,11 @@ export class CacheEntry {
   }
 
   registerCallback(key: string, callback: (value: CacheEntry) => void) {
-    this.callback[key] = callback;
+    this._callback[key] = callback;
   }
 
   deleteCallback(key: string) {
-    delete this.callback[key];
+    delete this._callback[key];
   }
 }
 
@@ -177,6 +198,13 @@ export default class CacheManager {
   private static get downloading(): Array<CacheEntry> {
     return CacheManager.entries.filter((x) => x.status === 'downloading');
   }
+  private static runEntry(uri: string) {
+    const idx = CacheManager.entries.findIndex((x) => x.uri === uri);
+    if (idx > -1) {
+      CacheManager.entries[idx].status = 'downloading';
+      CacheManager.entries[idx].download();
+    }
+  }
 
   private static async run() {
     const countDownloading = CacheManager.downloading.length;
@@ -185,8 +213,10 @@ export default class CacheManager {
     if (countPushDownload > countQueue) {
       countPushDownload = countQueue;
     }
-    if ((!countPushDownload && !countQueue) || CacheManager.status === 'stop') return;
-    else if (!countPushDownload && !!countQueue) {
+    if ((!countPushDownload && !countQueue) || CacheManager.status === 'stop') {
+      CacheManager.status = 'stop';
+      return;
+    } else if (!countPushDownload && !!countQueue) {
       setTimeout(() => {
         CacheManager.run();
       }, 1000);
@@ -194,8 +224,7 @@ export default class CacheManager {
     uniqBy(CacheManager.queue, 'uri')
       .slice(0, countPushDownload)
       .forEach((item) => {
-        item.status = 'downloading';
-        item.download();
+        CacheManager.runEntry(item.uri);
       });
     if (!CacheManager.downloading.length) {
       CacheManager.status = 'stop';
@@ -255,17 +284,3 @@ export default class CacheManager {
     });
   }
 }
-
-const getCacheEntry = async (
-  uri: string
-): Promise<FileSystem.FileInfo & { path: string; tmpPath: string }> => {
-  const filename = uri.substring(
-    uri.lastIndexOf('/'),
-    uri.indexOf('?') === -1 ? uri.length : uri.indexOf('?')
-  );
-  const ext = filename.indexOf('.') === -1 ? '.jpg' : filename.substring(filename.lastIndexOf('.'));
-  const path = `${BASE_DIR}${SHA1(uri)}${ext}`;
-  const tmpPath = `${BASE_DIR}${SHA1(uri)}-${uniqueId()}${ext}`;
-  const info = await FileSystem.getInfoAsync(path);
-  return { ...info, path, tmpPath };
-};
