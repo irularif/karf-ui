@@ -1,4 +1,4 @@
-import type { TFonts } from '../../src';
+import type { TFonts } from "../../types/font";
 
 export const fonts: TFonts = [
   {

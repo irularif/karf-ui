@@ -2,20 +2,8 @@ import * as Font from 'expo-font';
 import { useEffect } from 'react';
 
 import { fonts as libFonts } from '../../../assets/fonts';
+import type { FontLoaderProps, TFont } from '../../../types/font';
 import { useApp } from '../../hooks/app';
-
-export type TFont = {
-  name: string;
-  weight: '300' | '400' | '500' | '600' | '700' | '800';
-  source: NodeRequire;
-  style: 'normal' | 'italic';
-};
-
-export type TFonts = Array<TFont>;
-
-export interface FontLoaderProps {
-  fonts?: TFonts;
-}
 
 export const FontLoader = ({ fonts = [] }: FontLoaderProps) => {
   const { updateInitialize } = useApp();

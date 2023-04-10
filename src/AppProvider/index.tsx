@@ -4,16 +4,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions } from 'react-native';
 import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import type { TApp } from '../../types/app';
+import type { TFonts } from '../../types/font';
+import type { IConfigTheme } from '../../types/theme';
 import CacheManager from '../helpers/cacheManager';
-import { getSize } from '../helpers/responsive';
+import { getSize } from '../helpers/screen';
 import { KeyboardProvider } from '../KeyboardView/Provider';
 import { ModalProvider } from '../Modal/Provider';
 import { ScreenProvider } from '../ScreenProvider';
 import { initialScreen } from '../ScreenProvider/context';
 import { ThemeProvider } from '../ThemeProvider';
-import type { IConfigTheme } from '../ThemeProvider/context';
-import { AppContext, AppDispatchContext, TApp } from './context';
-import { FontLoader, TFonts } from './font/FontLoader';
+import { AppContext, AppDispatchContext } from './context';
+import { FontLoader } from './font/FontLoader';
 import { SplashScreenProps, WrapperSplashScreenProps } from './splashScreen/WrapperSplashScreen';
 
 export interface AppProviderProps {

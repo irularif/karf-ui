@@ -176,9 +176,7 @@ export class CacheItem {
 
   private async init() {
     await waitUntil(() => this.cache.ready);
-    if (!!this.cache.path) {
-      this.callback(this.cache);
-    }
+    this.callback(this.cache);
   }
 
   cancelSubscription() {
@@ -216,23 +214,14 @@ export default class CacheManager {
     if ((!countPushDownload && !countQueue) || CacheManager.status === 'stop') {
       CacheManager.status = 'stop';
       return;
-    } else if (!countPushDownload && !!countQueue) {
-      setTimeout(() => {
-        CacheManager.run();
-      }, 1000);
     }
+    await waitUntil(() => CacheManager.downloading.length < CacheManager.maxQueue);
     uniqBy(CacheManager.queue, 'uri')
       .slice(0, countPushDownload)
       .forEach((item) => {
         CacheManager.runEntry(item.uri);
       });
-    if (!CacheManager.downloading.length) {
-      CacheManager.status = 'stop';
-    } else {
-      setTimeout(() => {
-        CacheManager.run();
-      }, 1000);
-    }
+    CacheManager.run();
   }
 
   static async init() {

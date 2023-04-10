@@ -53,6 +53,7 @@ export interface CameraInputProps extends ButtonProps {
   onChange?: (e: CameraState) => void;
   onChangeValue?: (value: string) => void;
   disablePreview?: boolean;
+  disableImagePicker?: boolean;
 }
 
 const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
@@ -64,6 +65,7 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
       theme,
       containerStyle,
       disablePreview = false,
+      disableImagePicker = false,
       onLayout,
       onFocus,
       onBlur,
@@ -211,6 +213,7 @@ const _CameraInput: RNFunctionComponent<CameraInputProps> = forwardRef(
             onChange={onChange}
             onChangeValue={onChangeValue}
             cameraProps={_cameraProps}
+            disableImagePicker={disableImagePicker}
           />
         </Modal>
       </>
@@ -226,6 +229,7 @@ interface IRenderView {
   onChange: ((e: CameraState) => void) | undefined;
   onChangeValue: ((value: string) => void) | undefined;
   cameraProps: CameraProps | undefined;
+  disableImagePicker: boolean;
 }
 
 const RenderView = ({
@@ -236,6 +240,7 @@ const RenderView = ({
   onChangeValue,
   cameraOptions,
   cameraProps,
+  disableImagePicker,
 }: IRenderView) => {
   const [state] = cameraState;
   const permissionsState = Camera.useCameraPermissions();
@@ -261,6 +266,7 @@ const RenderView = ({
       cameraProps={cameraProps}
       cameraOptions={cameraOptions}
       permissionsState={permissionsState}
+      disableImagePicker={disableImagePicker}
     />
   );
 };
@@ -311,6 +317,7 @@ interface RenderCameraProps {
   cameraRef: React.RefObject<Camera>;
   cameraProps?: CameraProps;
   cameraOptions?: CameraPictureOptions;
+  disableImagePicker: boolean;
 }
 
 const RenderCamera = ({
@@ -320,6 +327,7 @@ const RenderCamera = ({
   cameraRef,
   cameraOptions,
   permissionsState,
+  disableImagePicker,
 }: RenderCameraProps) => {
   const [state, setState] = cameraState;
   const [permissions, requestPermission] = permissionsState;
@@ -396,6 +404,7 @@ const RenderCamera = ({
         theme={theme}
         cameraRef={cameraRef}
         cameraOptions={cameraOptions}
+        disableImagePicker={disableImagePicker}
       />
     </>
   );
@@ -485,9 +494,16 @@ interface IActionBottom {
   cameraState: [CameraState, React.Dispatch<React.SetStateAction<CameraState>>];
   cameraRef: React.RefObject<Camera>;
   cameraOptions: CameraPictureOptions | undefined;
+  disableImagePicker: boolean;
 }
 
-const ActionBottom = ({ cameraState, cameraRef, cameraOptions, theme }: IActionBottom) => {
+const ActionBottom = ({
+  cameraState,
+  cameraRef,
+  cameraOptions,
+  theme,
+  disableImagePicker,
+}: IActionBottom) => {
   const [_, setState] = cameraState;
 
   const switchCameraType = useCallback(() => {
@@ -561,6 +577,7 @@ const ActionBottom = ({ cameraState, cameraRef, cameraOptions, theme }: IActionB
         rounded
         onChange={imagePicker}
         disablePreview
+        disabled={disableImagePicker}
       >
         <Button.LeftIcon name="images" color={theme?.colors.white} size={32} />
       </ImagePicker>
@@ -752,7 +769,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     backgroundColor: '#fff',
-    borderRadius: 999,
+    borderRadius: 250,
   },
   containerButtonSnap: {
     marginHorizontal: 30,

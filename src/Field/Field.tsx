@@ -22,7 +22,7 @@ interface ILayout {
 }
 
 interface RenderNodeProps {
-  node: React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | null;
+  node: React.ReactElement | null;
   style?: ViewStyle;
 }
 
@@ -323,11 +323,11 @@ const RenderChild = memo((props: any) => {
       if (!isReady) {
         setIsReady(true);
       }
-      if (!!child.props?.onLayout) {
+      if (!!child?.props?.onLayout) {
         child.props.onLayout(e);
       }
     },
-    [child.props]
+    [child]
   );
 
   const onBlur = useCallback(
@@ -336,11 +336,11 @@ const RenderChild = memo((props: any) => {
       if (!state?.value) {
         closeAnimation();
       }
-      if (!!child.props?.onBlur) {
+      if (!!child?.props?.onBlur) {
         child.props.onBlur(e);
       }
     },
-    [child.props, inputRef]
+    [child, inputRef]
   );
 
   const onFocus = useCallback(
@@ -349,26 +349,26 @@ const RenderChild = memo((props: any) => {
       if (!state.value) {
         startAnimation();
       }
-      if (!!child.props?.onFocus) {
+      if (!!child?.props?.onFocus) {
         child.props.onFocus(e);
       }
     },
-    [child.props, inputRef]
+    [child, inputRef]
   );
 
   const setRef = useCallback(
     (ref: any) => {
       if (!ref) return;
       inputRef.current = ref;
-      if (!!child.props?.ref) {
+      if (!!child?.props?.ref) {
         child.props.ref(ref);
       }
     },
-    [child.props]
+    [child]
   );
 
   const newProps = {
-    ...child.props,
+    ...child?.props,
     onLayout,
     onBlur,
     onFocus,

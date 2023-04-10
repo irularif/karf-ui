@@ -2,13 +2,14 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import type { RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
+import { defaultTheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
 
 export interface AppbarRightActionProps extends ViewProps {}
 
 const _AppbarRightAction: RNFunctionComponent<AppbarRightActionProps> = ({
   style,
-  theme,
+  theme = defaultTheme,
   ...props
 }) => {
   const finalStyle = StyleSheet.flatten([styles.basic, style]);

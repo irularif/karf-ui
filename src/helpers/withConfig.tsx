@@ -1,12 +1,13 @@
 import { get, merge } from 'lodash';
 import React, { forwardRef } from 'react';
+import type { Responsive } from '../../types/screen';
+import type { ITheme, IThemeContext } from '../../types/theme';
 import { useScreen } from '../hooks';
-import type { Responsive } from '../ScreenProvider/context';
-import { defaultTheme, ITheme, IThemeContext, ThemeContext } from '../ThemeProvider/context';
+import { defaultTheme, ThemeContext } from '../ThemeProvider/context';
 
 export type ComponentProps<T> = T & {
   theme?: ITheme;
-  children?: React.ReactNode | undefined;
+  children?: React.ReactNode;
 } & Partial<Responsive<T>>;
 
 export type RNFunctionComponent<T> = React.FunctionComponent<ComponentProps<T>>;
@@ -37,13 +38,13 @@ const withConfig = <P extends {}>(
               return <WrappedComponent {...newProps} ref={ref} />;
             }
 
-            const { colors, mode, spacing, font, shadow, styles }: IThemeContext = context;
+            const { colors, mode, spacing, typography, shadow, styles }: IThemeContext = context;
 
             const basicTheme = {
               colors,
               mode,
               spacing,
-              font,
+              typography,
               shadow,
             };
             const styleProps = get(styles, name, {});

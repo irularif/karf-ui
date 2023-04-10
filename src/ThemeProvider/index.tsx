@@ -1,9 +1,10 @@
 import { get, merge } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { IConfigTheme, ThemeMode } from '../../types/theme';
 import { defaultSpacing } from '../helpers';
 import { darkColors, lightColors } from '../helpers/colors';
 import { getStorage, setStorage } from '../helpers/storage';
-import { IConfigTheme, ThemeContext, ThemeDispatchContext, ThemeMode } from './context';
+import { ThemeContext, ThemeDispatchContext } from './context';
 
 interface ThemeProviderProps {
   themes?: Partial<IConfigTheme>;
@@ -16,10 +17,11 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
     lightColors: merge(lightColors, get(themes, 'lightColors', {})),
     darkColors: merge(darkColors, get(themes, 'darkColors', {})),
     spacing: get(themes, 'spacing', defaultSpacing),
-    font: get(themes, 'font', {
-      family: 'Open Sans',
-      size: 14,
-      weight: '400',
+    typography: get(themes, 'typography', {
+      fontFamily: 'Open Sans',
+      fontSize: 14,
+      fontWeight: '400',
+      fontStyle: 'normal',
     }),
     shadow: get(themes, 'shadow', {
       shadowColor: '#000',
@@ -39,6 +41,8 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
     const value = await getStorage('theme');
     if (value) {
       setTheme(JSON.parse(value));
+    } else {
+      setStorage('theme', JSON.stringify(theme));
     }
   }, []);
 
@@ -74,19 +78,23 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
     [theme]
   );
 
+  const updateTheme = useCallback(
+    (_theme: Partial<IConfigTheme>) => {
+      const newTheme = merge({}, theme, _theme, {
+        lightColors: theme.lightColors,
+        darkColors: theme.darkColors,
+        mode: theme.mode,
+      });
+
+      setTheme(newTheme);
+      setStorage('theme', JSON.stringify(newTheme));
+    },
+    [theme]
+  );
+
   const ThemeContextValue = useMemo(() => {
     return {
-      mode: theme.mode,
-      spacing: theme.spacing,
-      font: Object.keys(theme.font).reduce(
-        (prev: any, k: string) => ({
-          ...prev,
-          [`font${k.charAt(0).toUpperCase() + k.slice(1)}`]: (theme.font as any)[k],
-        }),
-        {}
-      ),
-      shadow: theme.shadow,
-      styles: theme.styles,
+      ...theme,
       colors: currentColors,
     };
   }, [theme]);
@@ -101,6 +109,12 @@ export const ThemeProvider = ({ children, themes }: ThemeProviderProps) => {
   useEffect(() => {
     getThemeFromStorage();
   }, []);
+
+  useEffect(() => {
+    updateTheme({
+      ...themes,
+    });
+  }, [themes]);
 
   return (
     <ThemeDispatchContext.Provider value={ThemeDispatchContextValue}>

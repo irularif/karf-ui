@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
 import withConfig from '../helpers/withConfig';
 import { Icon, IconProps } from '../Icon';
+import { defaultTheme } from '../ThemeProvider/context';
 import { Button } from './';
 import type { ButtonProps } from './Button';
 
@@ -16,7 +17,7 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
   size = 20,
   brand,
   color,
-  theme,
+  theme = defaultTheme,
   rounded = true,
   variant = 'text',
   ...props
@@ -28,7 +29,7 @@ const _ButtonIcon: RNFunctionComponent<ButtonIconProps> = ({
   const _finalStyle = StyleSheet.flatten([
     styles.basic,
     rounded && {
-      borderRadius: 9999,
+      borderRadius: 250,
     },
     props.style,
     {

@@ -16,7 +16,7 @@ export interface BlurViewProps extends NativeBlurViewProps {
 
 const _BlurView: RNFunctionComponent<BlurViewProps> = forwardRef(
   ({ children, style, isAnimated, theme = defaultTheme, ...props }, ref) => {
-    const finalStyle = parseStyle([theme.style, style]);
+    const finalStyle = parseStyle([style]);
     const finalTextStyle = getTextStyle(finalStyle);
 
     return (

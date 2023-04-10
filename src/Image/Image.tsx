@@ -10,6 +10,7 @@ import {
   StyleProp,
   StyleSheet,
 } from 'react-native';
+import type { ITheme } from '../../types/theme';
 import { Appbar } from '../Appbar';
 import { ButtonIcon } from '../Button';
 import { renderNode, RNFunctionComponent } from '../helpers';
@@ -17,7 +18,7 @@ import CacheManager from '../helpers/cacheManager';
 import withConfig from '../helpers/withConfig';
 import { Modal } from '../Modal';
 import { Shimmer } from '../Shimmer';
-import type { ITheme } from '../ThemeProvider/context';
+import { defaultTheme } from '../ThemeProvider/context';
 import { ImageZoom } from './ImageZoom';
 
 interface ImageState {
@@ -50,7 +51,10 @@ export interface ImageProps extends NativeImageProps {
 }
 
 const BaseImage: RNFunctionComponent<ImageProps> = forwardRef(
-  ({ variant = 'default', source, style, theme, enablePreview = false, ...props }, _) => {
+  (
+    { variant = 'default', source, style, theme = defaultTheme, enablePreview = false, ...props },
+    _
+  ) => {
     const imageState = useState<ImageState>({
       originalSource: undefined,
       source: undefined,
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   circle: {
-    borderRadius: 9999,
+    borderRadius: 250,
   },
   default: {
     borderRadius: 4,

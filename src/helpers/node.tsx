@@ -1,4 +1,5 @@
 import { get } from 'lodash';
+import type { FunctionComponent } from 'react';
 import React, { Children } from 'react';
 
 export const renderNode = (Component: any, content: any, defaultProps: any = {}) => {
@@ -27,11 +28,15 @@ export const renderNode = (Component: any, content: any, defaultProps: any = {})
   return <Component {...defaultProps} {...content} />;
 };
 
-export const findNode = (children: React.ReactNode, name: string) => {
+export const findNode = (
+  children: React.ReactNode,
+  name: string,
+  DefaultNode: FunctionComponent<any> | null = null
+) => {
   if (children == null) {
     return null;
   }
-  
+
   const child = Children.toArray(children).find((child) => {
     const childName = get(child, 'type.displayName', get(child, 'type.name', ''));
 
@@ -40,6 +45,10 @@ export const findNode = (children: React.ReactNode, name: string) => {
 
   if (React.isValidElement(child)) {
     return child;
+  }
+
+  if (!!DefaultNode) {
+    return <DefaultNode />;
   }
   return null;
 };

@@ -11,11 +11,12 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 import { Button, ButtonProps } from '../../Button';
 import { format, parseISO, RNFunctionComponent } from '../../helpers';
 import withConfig from '../../helpers/withConfig';
 import { Modal } from '../../Modal';
+import { Text } from '../../Text';
 import type { ITheme } from '../../ThemeProvider/context';
 import { View } from '../../View';
 
@@ -34,8 +35,10 @@ export interface DateInputProps extends ButtonProps {
   placeholder?: string;
   type?: TDate;
   value?: string;
-  valueFormat?: string;
-  labelFormat?: string;
+  dateFormat?: {
+    label?: string;
+    value?: string;
+  };
   onChange?: (e: DateState) => void;
   onChangeValue?: (value: string) => void;
   datePickerProps?: Partial<
@@ -49,8 +52,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
       type = 'date',
       value = '',
       placeholder,
-      labelFormat,
-      valueFormat,
+      dateFormat,
       children,
       theme,
       datePickerProps,
@@ -119,7 +121,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
     }, [value]);
 
     const label = useMemo(() => {
-      let _labelFormat = labelFormat || type === 'time' ? 'HH:mm' : 'EEEE MMM d, yyyy';
+      let _labelFormat = dateFormat?.label || type === 'time' ? 'HH:mm' : 'EEEE MMM d, yyyy';
       if (!state.value) {
         return placeholder;
       }
@@ -127,7 +129,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
         _labelFormat = `${_labelFormat} HH:mm`;
       }
       return format(state.tempValue, _labelFormat);
-    }, [state, type, value, labelFormat, placeholder]);
+    }, [state, type, value, dateFormat, placeholder]);
 
     const finalButtonStyle = StyleSheet.flatten([
       styles.button,
@@ -155,8 +157,7 @@ const _DateInput: RNFunctionComponent<DateInputProps> = forwardRef(
           toggleModal={toggleModal}
           type={type}
           value={value}
-          valueFormat={valueFormat}
-          labelFormat={labelFormat}
+          dateFormat={dateFormat}
           onChange={onChange}
           onChangeValue={onChangeValue}
           datePickerProps={datePickerProps}
@@ -213,24 +214,24 @@ const RenderPicker = ({
   datePickerProps,
   theme,
   type,
-  valueFormat,
+  dateFormat,
 }: IRenderPicker) => {
   const [state, setState] = dateState;
 
   const parseValue = useCallback(
     (value: Date) => {
       if (type === 'datetime') {
-        if (valueFormat) {
-          return format(value, valueFormat);
+        if (dateFormat?.value) {
+          return format(value, dateFormat?.value);
         }
         return value.toJSON();
       }
       if (type === 'time') {
         return value.toJSON();
       }
-      return format(value, valueFormat || 'yyyy-MM-dd');
+      return format(value, dateFormat?.value || 'yyyy-MM-dd');
     },
-    [valueFormat, type]
+    [dateFormat, type]
   );
 
   const _handleAndroid = useCallback(
@@ -333,6 +334,10 @@ const RenderPicker = ({
             value={state.tempValue}
             themeVariant={theme?.mode}
             display="spinner"
+            style={{
+              width: '100%',
+              height: 200,
+            }}
           />
           <View style={styles.wrapperButton}>
             <Button variant="text" onPress={() => _handleIOS()}>

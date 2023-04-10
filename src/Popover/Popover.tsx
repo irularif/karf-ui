@@ -20,11 +20,11 @@ import {
   ViewStyle,
 } from 'react-native';
 import { v4 as uuid } from 'uuid';
+import type { ITheme } from '../../types/theme';
 import { getStyleValue, RNFunctionComponent, trimStyle } from '../helpers';
 import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
 import { Text } from '../Text';
-import type { ITheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
 import type { PopoverContentProps } from './Content';
 import type { PopoverTriggerProps } from './Trigger';
@@ -49,6 +49,7 @@ export interface PopoverProps extends ViewProps {
   triangleStyle?: StyleProp<ViewStyle>;
   withoutArrow?: boolean;
   withoutBackdrop?: boolean;
+  withoutShadow?: boolean;
 }
 
 const _Popover: RNFunctionComponent<PopoverProps> = ({
@@ -75,15 +76,10 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
   const [__, setChildPosition] = childPositionState;
   const childRef = React.useRef<any>(null);
   const child: any = Children.toArray(_children).find(
-    (x) => get(x, 'type.displayName', get(x, 'type.name', '')) === 'Popover.Trigger'
+    (x: any) => get(x, 'type.displayName', get(x, 'type.name', '')) === 'Popover.Trigger'
   );
-  const children = child.props.children;
+  const children = child?.props?.children;
   const watchRef: any = useRef();
-
-  const isChildButton =
-    ['Button', 'TouchableOpacity'].indexOf(
-      get(children, 'type.displayName', get(children, 'type.name', ''))
-    ) > -1;
 
   const forwardRef = useCallback(
     (ref: any) => {
@@ -143,17 +139,6 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
     );
   }, [childRef.current, children]);
 
-  const handleOnPress = useCallback(
-    (ev: any) => {
-      onChildPosition();
-      open();
-      if (!!children.props[toggleAction]) {
-        children.props[toggleAction]?.(ev);
-      }
-    },
-    [children]
-  );
-
   const watchPosition = useCallback(() => {
     if (isVisible) {
       watchRef.current = setTimeout(() => {
@@ -162,6 +147,18 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
       }, 10);
     }
   }, [isVisible]);
+
+  const handleOnPress = useCallback(
+    (ev: any) => {
+      console.log(child.props.children.props);
+      onChildPosition();
+      open();
+      if (!!child.props[toggleAction]) {
+        child.props[toggleAction]?.(ev);
+      }
+    },
+    [child]
+  );
 
   useEffect(() => {
     if (!!onIsOpenChanged) {
@@ -185,6 +182,22 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
     setIsVisible((prev) => (prev != isOpen ? isOpen : prev));
   }, [isOpen]);
 
+  const isChildButton = ['Button', 'TouchableOpacity', 'Pressable'].includes(
+    get(child, 'props.children.type.displayName', get(child, 'props.children.type.name', ''))
+  );
+  const Component = isChildButton ? child.props.children.type : Pressable;
+
+  const childProps = get(child, 'props.children.props', {});
+
+  const pressableProps = Object.assign(
+    {},
+    isChildButton
+      ? childProps
+      : {
+          children: child.props.children,
+        }
+  );
+
   const finalWrapperStyle = StyleSheet.flatten([
     styles.wrapper,
     trimStyle(get(children, 'props.style', {}), [
@@ -202,25 +215,14 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
 
   return (
     <>
-      <Pressable
+      <Component
+        {...pressableProps}
         ref={forwardRef}
         delayLongPress={250}
-        {...{ [toggleAction]: handleOnPress }}
         style={finalWrapperStyle}
-      >
-        {renderNode(children.type, true, {
-          ...children.props,
-          ...(isChildButton
-            ? {
-                delayLongPress: 250,
-                [toggleAction]: handleOnPress,
-              }
-            : {}),
-          onLayout: onChildPosition,
-          style: trimStyle(get(children, 'props.style', {}), ['margin']),
-        })}
-      </Pressable>
-      <RenderElement
+        {...{ [toggleAction]: handleOnPress }}
+      />
+      <RenderContent
         {...props}
         children={_children}
         style={style}
@@ -234,7 +236,7 @@ const _Popover: RNFunctionComponent<PopoverProps> = ({
   );
 };
 
-interface IRenderElement extends Partial<PopoverProps> {
+interface IRenderContent extends Partial<PopoverProps> {
   visibleState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
   childPositionState: [Layout, React.Dispatch<React.SetStateAction<Layout>>];
   fadeAnim: Animated.Value;
@@ -242,7 +244,7 @@ interface IRenderElement extends Partial<PopoverProps> {
   close: () => void;
 }
 
-const RenderElement = ({
+const RenderContent = ({
   children: _children,
   visibleState,
   childPositionState,
@@ -254,9 +256,10 @@ const RenderElement = ({
   theme,
   withoutArrow = false,
   withoutBackdrop = false,
+  withoutShadow = false,
   close,
   ...props
-}: IRenderElement) => {
+}: IRenderContent) => {
   const [isVisible] = visibleState;
   const [childPosition] = childPositionState;
   const id = useRef(uuid()).current;
@@ -269,7 +272,7 @@ const RenderElement = ({
   });
 
   const child: any = Children.toArray(_children).find(
-    (x) => get(x, 'type.displayName', get(x, 'type.name', '')) === 'Popover.Content'
+    (x: any) => get(x, 'type.displayName', get(x, 'type.name', '')) === 'Popover.Content'
   );
   const children = child?.props?.children;
 
@@ -347,7 +350,7 @@ const RenderElement = ({
 
   const finalContainerStyle = StyleSheet.flatten([
     styles.container,
-    theme?.shadow,
+    !withoutShadow && theme?.shadow,
     containerStyle,
     positionStyle,
     {
@@ -369,7 +372,7 @@ const RenderElement = ({
     {
       borderColor: bg || get(style, 'backgroundColor', theme?.colors.black),
     },
-    theme?.shadow,
+    !withoutShadow && theme?.shadow,
     triangleStyle,
   ]);
   const finalTextStyle = StyleSheet.flatten([
@@ -444,36 +447,36 @@ const styles = StyleSheet.create({
   },
   top: {
     marginTop: -1,
-    borderTopWidth: 8,
-    borderRightWidth: 8,
+    borderTopWidth: 16,
+    borderRightWidth: 16,
     borderBottomWidth: 0,
-    borderLeftWidth: 8,
+    borderLeftWidth: 16,
     borderRightColor: 'transparent',
     borderLeftColor: 'transparent',
   },
   bottom: {
     marginBottom: -1,
     borderTopWidth: 0,
-    borderRightWidth: 8,
-    borderBottomWidth: 8,
-    borderLeftWidth: 8,
+    borderRightWidth: 16,
+    borderBottomWidth: 16,
+    borderLeftWidth: 16,
     borderRightColor: 'transparent',
     borderLeftColor: 'transparent',
   },
   left: {
     marginLeft: -1,
-    borderBottomWidth: 8,
+    borderBottomWidth: 16,
     borderRightWidth: 0,
-    borderTopWidth: 8,
-    borderLeftWidth: 8,
+    borderTopWidth: 16,
+    borderLeftWidth: 16,
     borderBottomColor: 'transparent',
     borderTopColor: 'transparent',
   },
   right: {
     marginRight: -1,
-    borderBottomWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 8,
+    borderBottomWidth: 16,
+    borderRightWidth: 16,
+    borderTopWidth: 16,
     borderLeftWidth: 0,
     borderBottomColor: 'transparent',
     borderTopColor: 'transparent',

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getStyleValue, RNFunctionComponent } from '../helpers';
 import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
+import { defaultTheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
 
 export interface AppbarProps extends ViewProps {
@@ -18,7 +19,7 @@ export interface AppbarProps extends ViewProps {
 const _AppbarBase: RNFunctionComponent<AppbarProps> = ({
   children,
   style,
-  theme,
+  theme = defaultTheme,
   disableShadow = false,
   insetTop = false,
   insetBottom = false,

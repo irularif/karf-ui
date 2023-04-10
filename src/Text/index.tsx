@@ -29,7 +29,7 @@ const _Text: RNFunctionComponent<TextProps> = forwardRef(
         color: theme.colors.black,
       },
       styles.basic,
-      theme.font,
+      theme.typography,
       theme.style,
       !!heading && styles[heading],
       style

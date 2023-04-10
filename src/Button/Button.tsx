@@ -1,6 +1,15 @@
 import Color from 'color';
 import { get } from 'lodash';
-import React, { Children, Component, useCallback, useMemo, useState } from 'react';
+import React, {
+  Children,
+  Component,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   ActivityIndicatorProps,
@@ -18,6 +27,7 @@ import { renderNode } from '../helpers/node';
 import withConfig from '../helpers/withConfig';
 import { useModal } from '../hooks/modal';
 import type { TModalProps } from '../Modal/context';
+import { defaultTheme } from '../ThemeProvider/context';
 import { View, ViewProps } from '../View';
 import { Label } from './Label';
 
@@ -55,237 +65,252 @@ interface ChildProps {
   style?: ViewStyle | any;
 }
 
-const _ButtonBase: RNFunctionComponent<ButtonProps> = ({
-  TouchableComponent,
-  children,
-  theme,
-  style,
-  disabled,
-  disabledStyle,
-  containerStyle,
-  Component = View,
-  componentProps,
-  tooltip,
-  variant = 'filled',
-  shadow = false,
-  loading = false,
-  loadingStyle,
-  loadingProps,
-  modalId,
-  modalProps,
-  rounded = false,
-  onPress,
-  onPressIn,
-  onPressOut,
-  containerProps,
-  ...props
-}) => {
-  const [isPressIn, setIsPressIn] = useState(false);
-  const { isOpen, setIsOpen } = useModal(modalId);
+const _ButtonBase: RNFunctionComponent<ButtonProps> = forwardRef(
+  (
+    {
+      TouchableComponent,
+      children,
+      theme = defaultTheme,
+      style,
+      disabled,
+      disabledStyle,
+      containerStyle,
+      Component = View,
+      componentProps,
+      tooltip,
+      variant = 'filled',
+      shadow = false,
+      loading = false,
+      loadingStyle,
+      loadingProps,
+      modalId,
+      modalProps,
+      rounded = false,
+      onPress,
+      onPressIn,
+      onPressOut,
+      containerProps,
+      ...props
+    },
+    ref
+  ) => {
+    const [isPressIn, setIsPressIn] = useState(false);
+    const { isOpen, setIsOpen } = useModal(modalId);
 
-  const NativeTouchableComponent =
-    TouchableComponent ||
-    Platform.select({
-      // @ts-ignore
-      android: TouchableNativeFeedback,
-      ios: TouchableOpacity,
-    });
+    const NativeTouchableComponent =
+      TouchableComponent ||
+      Platform.select({
+        // @ts-ignore
+        android: TouchableNativeFeedback,
+        ios: TouchableOpacity,
+      });
+    const innerRef = useRef<typeof NativeTouchableComponent>(null);
 
-  const handleModal = useCallback(() => {
-    if (!modalId) return;
+    // @ts-ignore
+    useImperativeHandle(ref, () => Object.assign(innerRef.current), []);
 
-    setIsOpen(!isOpen, modalProps);
-  }, [modalId, modalProps, setIsOpen, isOpen]);
+    const handleModal = useCallback(() => {
+      if (!modalId) return;
 
-  const handleOnPress = useCallback(
-    (evt: any) => {
-      if (!loading && !disabled) {
-        handleModal();
-        if (onPress) {
-          onPress(evt);
+      setIsOpen(!isOpen, modalProps);
+    }, [modalId, modalProps, setIsOpen, isOpen]);
+
+    const handleOnPress = useCallback(
+      (evt: any) => {
+        if (!loading && !disabled) {
+          handleModal();
+          if (onPress) {
+            onPress(evt);
+          }
         }
-      }
-    },
-    [loading, onPress, disabled, modalProps, handleModal]
-  );
+      },
+      [loading, onPress, disabled, modalProps, handleModal]
+    );
 
-  const handleOnPressIn = useMemo(
-    () =>
-      ['text', 'outlined'].indexOf(variant) > -1
-        ? (evt: any) => {
-            setIsPressIn(true);
-            if (!!onPressIn) {
-              onPressIn(evt);
+    const handleOnPressIn = useMemo(
+      () =>
+        ['text', 'outlined'].indexOf(variant) > -1
+          ? (evt: any) => {
+              setIsPressIn(true);
+              if (!!onPressIn) {
+                onPressIn(evt);
+              }
             }
-          }
-        : undefined,
-    [isPressIn, onPressIn]
-  );
+          : undefined,
+      [isPressIn, onPressIn]
+    );
 
-  const handleOnPressOut = useMemo(
-    () =>
-      ['text', 'outlined'].indexOf(variant) > -1
-        ? (evt: any) => {
-            setTimeout(() => {
-              setIsPressIn(false);
-            }, 200);
-            if (!!onPressOut) {
-              onPressOut(evt);
+    const handleOnPressOut = useMemo(
+      () =>
+        ['text', 'outlined'].indexOf(variant) > -1
+          ? (evt: any) => {
+              setTimeout(() => {
+                setIsPressIn(false);
+              }, 200);
+              if (!!onPressOut) {
+                onPressOut(evt);
+              }
             }
-          }
-        : undefined,
-    [isPressIn, onPressOut]
-  );
+          : undefined,
+      [isPressIn, onPressOut]
+    );
 
-  const accessibilityState = useMemo(
-    () => ({
-      disabled: !!disabled,
-      busy: !!loading,
-    }),
-    [disabled, loading]
-  );
+    const accessibilityState = useMemo(
+      () => ({
+        disabled: !!disabled,
+        busy: !!loading,
+      }),
+      [disabled, loading]
+    );
 
-  const mergeStyle = StyleSheet.flatten([styles.basic, theme?.style, style, componentProps?.style]);
+    const mergeStyle = StyleSheet.flatten([
+      styles.basic,
+      style,
+      componentProps?.style,
+    ]);
 
-  const baseColor = get(mergeStyle, 'backgroundColor', theme?.colors.primary);
-  const finalStyle = StyleSheet.flatten([
-    mergeStyle,
-    {
-      backgroundColor: baseColor,
-    },
-    {
-      text: {
-        color: get(mergeStyle, 'color', baseColor),
-        backgroundColor: Color(baseColor)
-          .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
-          .rgb()
-          .toString(),
+    const baseColor = get(mergeStyle, 'backgroundColor', theme?.colors.primary);
+    const finalStyle = StyleSheet.flatten([
+      mergeStyle,
+      {
+        backgroundColor: baseColor,
       },
-      outlined: {
-        color: get(mergeStyle, 'color', baseColor),
-        backgroundColor: Color(baseColor)
-          .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
-          .rgb()
-          .toString(),
-        borderColor: get(mergeStyle, 'borderColor', baseColor),
-        borderWidth: 1,
-      },
-      filled: {},
-      tonal: {
-        color: Color(get(mergeStyle, 'color', baseColor)).darken(0.2).rgb().toString(),
-        backgroundColor: Color(baseColor).alpha(0.2).rgb().toString(),
-      },
-    }[variant],
-    loading &&
-      StyleSheet.flatten([
-        {
-          text: {},
-          tonal: {
-            backgroundColor: Color(baseColor).alpha(0.15).rgb().string(),
-          },
-          outlined: {
-            borderColor: Color(baseColor).alpha(0.7).rgb().string(),
-          },
-          filled: {
-            backgroundColor: Color(baseColor).alpha(0.5).rgb().string(),
-          },
-        }[variant],
-        loadingStyle,
-      ]),
-    disabled &&
-      StyleSheet.flatten([
-        {
-          text: {},
-          tonal: {
-            backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
-          },
-          outlined: {
-            backgroundColor: Color(theme?.colors?.disabled).alpha(0).rgb().string(),
-            borderColor: Color(theme?.colors?.disabled).alpha(0.8).rgb().string(),
-          },
-          filled: {
-            backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
-          },
-        }[variant],
-        disabledStyle,
-      ]),
-    rounded && {
-      borderRadius: 9999,
-    },
-  ]);
-
-  const finalContainerStyle = StyleSheet.flatten([
-    styles.container,
-    containerStyle,
-    shadow && {
-      ...(disabled || loading ? {} : theme?.shadow),
-      overflow: 'visible',
-    },
-    rounded && {
-      borderRadius: 9999,
-    },
-  ]);
-
-  const background =
-    Platform.OS === 'android' && Platform.Version >= 21
-      ? TouchableNativeFeedback.Ripple(
-          Color(baseColor)
-            .lighten(variant === 'tonal' || variant === 'text' ? 0.3 : 0.4)
+      {
+        text: {
+          color: get(mergeStyle, 'color', baseColor),
+          backgroundColor: Color(baseColor)
+            .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
             .rgb()
-            .string(),
-          false
-        )
-      : undefined;
+            .toString(),
+        },
+        outlined: {
+          color: get(mergeStyle, 'color', baseColor),
+          backgroundColor: Color(baseColor)
+            .alpha(isPressIn && Platform.OS === 'ios' ? 0.1 : 0)
+            .rgb()
+            .toString(),
+          borderColor: get(mergeStyle, 'borderColor', baseColor),
+          borderWidth: 1,
+        },
+        filled: {},
+        tonal: {
+          color: Color(get(mergeStyle, 'color', baseColor)).darken(0.2).rgb().toString(),
+          backgroundColor: Color(baseColor).alpha(0.2).rgb().toString(),
+        },
+      }[variant],
+      loading &&
+        StyleSheet.flatten([
+          {
+            text: {},
+            tonal: {
+              backgroundColor: Color(baseColor).alpha(0.15).rgb().string(),
+            },
+            outlined: {
+              borderColor: Color(baseColor).alpha(0.7).rgb().string(),
+            },
+            filled: {
+              backgroundColor: Color(baseColor).alpha(0.5).rgb().string(),
+            },
+          }[variant],
+          loadingStyle,
+        ]),
+      disabled &&
+        StyleSheet.flatten([
+          {
+            text: {},
+            tonal: {
+              backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
+            },
+            outlined: {
+              backgroundColor: Color(theme?.colors?.disabled).alpha(0).rgb().string(),
+              borderColor: Color(theme?.colors?.disabled).alpha(0.8).rgb().string(),
+            },
+            filled: {
+              backgroundColor: Color(theme?.colors?.disabled).alpha(0.3).rgb().string(),
+            },
+          }[variant],
+          disabledStyle,
+        ]),
+      rounded && {
+        borderRadius: 250,
+      },
+    ]);
 
-  const activeOpacity = useMemo(() => {
-    switch (variant) {
-      case 'text':
-        return 1;
-      case 'outlined':
-      case 'tonal':
-        return 0.5;
-      default:
-        return 0.6;
-    }
-  }, [variant]);
+    const finalContainerStyle = StyleSheet.flatten([
+      styles.container,
+      containerStyle,
+      shadow && {
+        ...(disabled || loading ? {} : theme?.shadow),
+        overflow: 'visible',
+      },
+      rounded && {
+        borderRadius: 250,
+      },
+    ]);
 
-  return (
-    <View
-      {...containerProps}
-      // @ts-ignore
-      style={finalContainerStyle}
-    >
-      <NativeTouchableComponent
-        {...props}
-        onPress={handleOnPress}
-        activeOpacity={activeOpacity}
-        accessibilityRole="button"
-        accessibilityState={accessibilityState}
-        disabled={disabled || loading}
-        background={background}
-        onPressIn={handleOnPressIn}
-        onPressOut={handleOnPressOut}
+    const background =
+      Platform.OS === 'android' && Platform.Version >= 21
+        ? TouchableNativeFeedback.Ripple(
+            Color(baseColor)
+              .lighten(variant === 'tonal' || variant === 'text' ? 0.3 : 0.4)
+              .rgb()
+              .string(),
+            false
+          )
+        : undefined;
+
+    const activeOpacity = useMemo(() => {
+      switch (variant) {
+        case 'text':
+          return 1;
+        case 'outlined':
+        case 'tonal':
+          return 0.5;
+        default:
+          return 0.6;
+      }
+    }, [variant]);
+
+    return (
+      <View
+        {...containerProps}
+        // @ts-ignore
+        style={finalContainerStyle}
       >
-        {/* @ts-ignore */}
-        <Component {...componentProps} style={finalStyle}>
-          <RenderLoading
-            loading={loading}
-            loadingProps={loadingProps}
-            style={finalStyle}
-            theme={theme}
-          />
-          <RenderChild
-            loading={loading}
-            disabled={disabled}
-            style={finalStyle}
-            theme={theme}
-            children={children}
-          />
-        </Component>
-      </NativeTouchableComponent>
-    </View>
-  );
-};
+        <NativeTouchableComponent
+          {...props}
+          // @ts-ignore
+          ref={innerRef}
+          onPress={handleOnPress}
+          activeOpacity={activeOpacity}
+          accessibilityRole="button"
+          accessibilityState={accessibilityState}
+          disabled={disabled || loading}
+          background={background}
+          onPressIn={handleOnPressIn}
+          onPressOut={handleOnPressOut}
+        >
+          {/* @ts-ignore */}
+          <Component {...componentProps} style={finalStyle}>
+            <RenderLoading
+              loading={loading}
+              loadingProps={loadingProps}
+              style={finalStyle}
+              theme={theme}
+            />
+            <RenderChild
+              loading={loading}
+              disabled={disabled}
+              style={finalStyle}
+              theme={theme}
+              children={children}
+            />
+          </Component>
+        </NativeTouchableComponent>
+      </View>
+    );
+  }
+);
 
 const RenderLoading = ({ loading = false, loadingProps, style, theme }: LoadingProps) => {
   if (loading) {
@@ -320,8 +345,8 @@ const RenderChild = ({ loading = false, disabled = false, theme, children, style
     <>
       {childs
         .sort((elA, elB) => {
-          const nameA = get(elA, 'type.displayName', get(elA, 'type.name', ''));
-          const nameB = get(elB, 'type.displayName', get(elB, 'type.name', ''));
+          const nameA: string = get(elA, 'type.displayName', get(elA, 'type.name', ''));
+          const nameB: string = get(elB, 'type.displayName', get(elB, 'type.name', ''));
           const idxA = nameA === 'Button.LeftIcon' ? 0 : nameA === 'Button.RightIcon' ? 2 : 1;
           const idxB = nameB === 'Button.LeftIcon' ? 0 : nameB === 'Button.RightIcon' ? 2 : 1;
           if (idxA < idxB) {

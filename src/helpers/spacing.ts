@@ -1,5 +1,3 @@
-import type { TDevice } from '../ScreenProvider/context';
+import type { ThemeSpacing } from '../../types/theme';
 
-export type ThemeSpacing = Record<TDevice, number>;
-
-export const defaultSpacing = { xs: 2, sm: 4, md: 8, lg: 12, xl: 24 };
+export const defaultSpacing: ThemeSpacing = { xs: 2, sm: 4, md: 8, lg: 12, xl: 24 };

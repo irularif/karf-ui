@@ -1,30 +1,5 @@
 import { StyleSheet } from 'react-native';
-
-export interface ThemeColors {
-  readonly primary: string;
-  readonly secondary: string;
-  readonly background: string;
-  readonly white: string;
-  readonly black: string;
-  readonly grey50: string;
-  readonly grey100: string;
-  readonly grey200: string;
-  readonly grey300: string;
-  readonly grey400: string;
-  readonly grey500: string;
-  readonly grey600: string;
-  readonly grey700: string;
-  readonly grey800: string;
-  readonly grey900: string;
-  readonly greyOutline: string;
-  readonly searchBg: string;
-  readonly success: string;
-  readonly warning: string;
-  readonly error: string;
-  readonly disabled: string;
-  readonly divider: string;
-  readonly [key: string & {}]: string;
-}
+import type { ThemeColors } from '../../types/theme';
 
 export const lightColors: ThemeColors = {
   primary: '#47B5FF',
